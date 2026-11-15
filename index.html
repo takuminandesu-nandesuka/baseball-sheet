@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ポジション、年齢別／球団バランスシート</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+      background-color: #f4f5f7;
+      color: #1a1a1a;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* スクロール領域とSticky固定（iPad縦向き・横向き最適化） */
+    .table-scroll-wrapper {
+      overflow-x: auto;
+      overflow-y: auto;
+      max-height: 76vh;
+      -webkit-overflow-scrolling: touch;
+      border: 1.5px solid #374151;
+      border-radius: 6px;
+      position: relative;
+    }
+
+    /* バランスシート特有の太線・配色再現 */
+    .bs-table {
+      border-collapse: separate;
+      border-spacing: 0;
+      width: 100%;
+      min-width: 980px;
+      table-layout: fixed;
+      background: #ffffff;
+    }
+
+    .bs-table th,
+    .bs-table td {
+      border-bottom: 1px solid #d1d5db;
+      border-right: 1.5px solid #4b5563;
+      padding: 4px 4px;
+      text-align: center;
+      vertical-align: middle;
+      line-height: 1.3;
+      word-break: keep-all;
+    }
+
+    /* ポジション大分類の太い縦境界線 */
+    .thick-left {
+      border-left: 3px solid #1f2937 !important;
+    }
+    .thick-right {
+      border-right: 3.5px solid #1f2937 !important;
+    }
+
+    /* Sticky ヘッダー固定（上下スクロール追従） */
+    .bs-table thead tr:nth-child(1) th {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+    .bs-table thead tr:nth-child(2) th {
+      position: sticky;
+      top: 34px;
+      z-index: 20;
+    }
+
+    /* Sticky 左端「年齢」列固定（左右スクロール追従） */
+    .sticky-age-header {
+      position: sticky !important;
+      left: 0;
+      top: 0;
+      z-index: 30 !important;
+      background-color: #1f2937;
+      color: #ffffff;
+      font-weight: 900;
+      border-right: 3.5px solid #1f2937 !important;
+      border-bottom: 2.5px solid #1f2937 !important;
+    }
+
+    .sticky-age-cell {
+      position: sticky;
+      left: 0;
+      z-index: 10;
+      border-right: 3.5px solid #1f2937 !important;
+      background-color: inherit;
+    }
+
+    /* ヘッダー配色 */
+    .header-pos-main {
+      background-color: #004499;
+      color: #ffe600;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      height: 34px;
+      border-bottom: 2px solid #1f2937 !important;
+    }
+    .header-pos-sub {
+      background-color: #ffffff;
+      color: #008000;
+      font-weight: 900;
+      height: 28px;
+      border-bottom: 2.5px solid #1f2937 !important;
+    }
+
+    /* 年齢別行の背景色（画像準拠・Sticky列でも透過しないよう明示指定） */
+    .row-40plus, .row-40plus .sticky-age-cell { background-color: #f3d6e4; }
+    .row-30s-even, .row-30s-even .sticky-age-cell { background-color: #dedbe6; }
+    .row-30s-odd, .row-30s-odd .sticky-age-cell { background-color: #ffffff; }
+    .row-20s-odd, .row-20s-odd .sticky-age-cell { background-color: #cbe0f2; }
+    .row-20s-even, .row-20s-even .sticky-age-cell { background-color: #ffffff; }
+    .row-19under, .row-19under .sticky-age-cell { background-color: #d5e2d8; }
+
+    /* 編集可能セルのスタイル（iPadタップ領域・ズーム防止16px対応） */
+    .editable-cell {
+      min-height: 34px;
+      cursor: text;
+      font-weight: 800;
+      font-size: 15px;
+      transition: box-shadow 0.15s ease, background-color 0.15s ease;
+      outline: none;
+    }
+    .editable-cell:hover {
+      box-shadow: inset 0 0 0 2px rgba(0, 68, 153, 0.35);
+    }
+    .editable-cell:focus {
+      box-shadow: inset 0 0 0 2.5px #004499;
+      background-color: rgba(255, 255, 255, 0.95) !important;
+    }
+
+    /* タップ装飾切替モード時のスタイル */
+    .tap-style-mode .editable-cell {
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .tap-style-mode .player-token {
+      padding: 2px 5px;
+      border-radius: 4px;
+      border: 1px dashed rgba(0, 68, 153, 0.45);
+      display: inline-block;
+      margin: 1px 0;
+    }
+
+    /* 選手名の装飾（画像準拠） */
+    .player-red {
+      background-color: #e60012;
+      color: #ffffff;
+      padding: 1px 4px;
+      border-radius: 2px;
+      display: inline-block;
+      line-height: 1.2;
+    }
+    .player-blue {
+      color: #005bac;
+    }
+    .player-normal {
+      color: #111111;
+    }
+
+    /* 印刷時の最適化 */
+    @media print {
+      .no-print {
+        display: none !important;
+      }
+      body {
+        background: #ffffff;
+      }
+      .table-scroll-wrapper {
+        max-height: none !important;
+        overflow: visible !important;
+        border: none !important;
+      }
+      .sheet-container {
+        box-shadow: none !important;
+        padding: 0 !important;
+        max-width: 100% !important;
+      }
+    }
+  </style>
+</head>
+<body class="p-2 sm:p-4 md:p-5">
+
+  <!-- 操作ツールバー（上部・iPadタッチ最適化） -->
+  <div class="no-print max-w-[1280px] mx-auto mb-3 bg-white rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4">
+    <div class="flex flex-wrap items-center justify-between gap-2.5">
+      
+      <!-- 年度入力窓＆年度更新コントロール -->
+      <div class="flex flex-wrap items-center gap-2">
+        <div class="flex items-center bg-blue-50 border-2 border-[#004499] rounded-lg px-2.5 py-1 min-h-[42px] shadow-inner">
+          <label for="yearInput" class="text-xs sm:text-sm font-bold text-[#004499] mr-1.5 whitespace-nowrap">対象年度：</label>
+          <input
+            id="yearInput"
+            type="text"
+            value="2026年度"
+            aria-label="対象年度"
+            class="w-28 sm:w-32 text-base font-black text-gray-900 bg-white border border-blue-300 rounded px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-[#004499]"
+            placeholder="例: 2026年度"
+          />
+        </div>
+
+        <button
+          id="advanceYearBtn"
+          type="button"
+          class="min-h-[42px] bg-[#004499] hover:bg-blue-800 active:scale-[0.98] text-white font-bold text-xs sm:text-sm px-3.5 py-2 rounded-lg shadow transition flex items-center gap-1.5 cursor-pointer"
+          title="年度を1つ進め、全選手の年齢を1歳上へ移動します"
+        >
+          <span>翌年度へ更新（+1歳）</span>
+          <span class="bg-white/20 text-white text-[11px] px-1.5 py-0.5 rounded">▲1歳</span>
+        </button>
+
+        <button
+          id="undoBtn"
+          type="button"
+          disabled
+          class="min-h-[42px] bg-gray-100 hover:bg-gray-200 disabled:opacity-40 disabled:pointer-events-none text-gray-700 font-bold text-xs sm:text-sm px-3 py-2 rounded-lg border border-gray-300 transition cursor-pointer"
+          title="直前の操作を取り消します"
+        >
+          ↩ 戻す
+        </button>
+      </div>
+
+      <!-- iPadタッチ対応：タップ装飾切替モード & データ管理 -->
+      <div class="flex flex-wrap items-center gap-2">
+        <!-- URL共有ボタン（GitHub Pages用：現在の入力内容をリンク化してコピー） -->
+        <button
+          id="shareUrlBtn"
+          type="button"
+          class="min-h-[42px] bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-xs sm:text-sm px-3.5 py-2 rounded-lg shadow-sm flex items-center gap-1.5 transition cursor-pointer"
+          title="現在の入力内容を含んだ共有用URLをコピーします。LINE等で送ると他の端末でも同じ内容が開きます"
+        >
+          <span>🔗 共有URLコピー</span>
+        </button>
+
+        <!-- タップ装飾切替モードトグル（iPad最適化の要） -->
+        <button
+          id="tapModeBtn"
+          type="button"
+          aria-pressed="false"
+          class="min-h-[42px] bg-amber-50 hover:bg-amber-100 text-amber-900 border-2 border-amber-400 font-black text-xs sm:text-sm px-3 py-2 rounded-lg transition flex items-center gap-1.5 cursor-pointer"
+          title="ONにすると、文字入力の代わりに選手名をタップするだけで『黒字→赤枠白字→青字』を切り替えられます"
+        >
+          <span>👆 タップ装飾切替:</span>
+          <span id="tapModeStatus" class="bg-gray-600 text-white text-[11px] px-2 py-0.5 rounded">OFF（文字入力）</span>
+        </button>
+
+        <!-- PC向けドラッグ選択装飾ボタン -->
+        <div class="hidden lg:flex items-center gap-1 bg-gray-100 p-1 rounded-lg border border-gray-200 min-h-[42px]" title="セル内の文字を選択してクリックすると色を変更できます">
+          <button type="button" data-style="normal" class="style-btn px-2.5 py-1.5 text-xs font-bold bg-white text-gray-900 rounded border border-gray-300 hover:bg-gray-50 cursor-pointer">黒字</button>
+          <button type="button" data-style="red" class="style-btn px-2.5 py-1.5 text-xs font-bold bg-[#e60012] text-white rounded hover:opacity-90 cursor-pointer">赤枠</button>
+          <button type="button" data-style="blue" class="style-btn px-2.5 py-1.5 text-xs font-bold bg-white text-[#005bac] rounded border border-gray-300 hover:bg-blue-50 cursor-pointer">青字</button>
+        </div>
+
+        <button
+          id="exportBtn"
+          type="button"
+          class="min-h-[42px] bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 font-bold text-xs sm:text-sm px-3 py-2 rounded-lg transition cursor-pointer"
+        >
+          保存
+        </button>
+
+        <button
+          id="importBtn"
+          type="button"
+          class="min-h-[42px] bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 font-bold text-xs sm:text-sm px-3 py-2 rounded-lg transition cursor-pointer"
+        >
+          読込
+        </button>
+        <input id="importFileInput" type="file" accept=".json,application/json" class="hidden" />
+
+        <button
+          id="resetBtn"
+          type="button"
+          class="min-h-[42px] bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-bold text-xs sm:text-sm px-3 py-2 rounded-lg transition cursor-pointer"
+        >
+          白紙リセット
+        </button>
+      </div>
+    </div>
+
+    <!-- ガイド表示・集計サマリー -->
+    <div class="mt-2.5 pt-2 border-t border-gray-100 flex flex-wrap items-center justify-between gap-2 text-xs text-gray-600">
+      <div id="modeGuideText" class="flex-1 min-w-[260px]">
+        💡 マス目をタップして<strong class="text-gray-800">直接フリーテキスト入力</strong>（複数名は「・」区切り）。色分けは上の「👆 タップ装飾切替」をONにすると指で簡単に切り替えられます。
+      </div>
+      <div id="playerCountSummary" class="font-bold text-gray-800 bg-gray-100 px-2.5 py-1 rounded">
+        合計 0名（投手:0 / 捕手:0 / 内野:0 / 外野:0）
+      </div>
+    </div>
+  </div>
+
+  <!-- バランスシート本体 -->
+  <div class="sheet-container max-w-[1280px] mx-auto bg-white p-3 sm:p-5 rounded-xl shadow-md border border-gray-200">
+    <!-- タイトル行 -->
+    <div class="flex flex-wrap items-center justify-center gap-2 mb-3">
+      <span id="sheetYearBadge" class="bg-[#004499] text-white font-black text-sm sm:text-base px-3 py-1 rounded-md shadow-sm">
+        2026年度
+      </span>
+      <h1
+        id="sheetTitle"
+        contenteditable="true"
+        spellcheck="false"
+        class="text-lg sm:text-2xl font-black text-gray-800 tracking-wide text-center px-2 py-0.5 rounded hover:bg-gray-100 focus:bg-blue-50 focus:outline-none"
+        title="クリックしてタイトルも自由に編集できます"
+      >
+        ポジション、年齢別／12球団バランスシート
+      </h1>
+    </div>
+
+    <!-- テーブルスクロールラッパー -->
+    <div id="tableScrollWrapper" class="table-scroll-wrapper">
+      <table id="sheetTable" class="bs-table">
+        <colgroup>
+          <col style="width: 54px;" />
+          <col style="width: 10.5%;" />
+          <col style="width: 11.5%;" />
+          <col style="width: 9.5%;" />
+          <col style="width: 10.5%;" />
+          <col style="width: 8.5%;" />
+          <col style="width: 10.5%;" />
+          <col style="width: 10.5%;" />
+          <col style="width: 8.5%;" />
+          <col style="width: 10.5%;" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th rowspan="2" class="sticky-age-header text-xs sm:text-sm leading-tight">
+              年<br />齢
+            </th>
+            <th colspan="2" class="header-pos-main thick-right text-sm sm:text-base">投手</th>
+            <th class="header-pos-main thick-right text-sm sm:text-base">捕手</th>
+            <th colspan="3" class="header-pos-main thick-right text-sm sm:text-base">内野手</th>
+            <th colspan="3" class="header-pos-main thick-right text-sm sm:text-base">外野手</th>
+          </tr>
+          <tr>
+            <th class="header-pos-sub text-xs sm:text-sm">左投</th>
+            <th class="header-pos-sub thick-right text-xs sm:text-sm">右投</th>
+            <th class="header-pos-sub thick-right text-xs sm:text-sm"></th>
+            <th class="header-pos-sub text-xs sm:text-sm">左打</th>
+            <th class="header-pos-sub text-xs sm:text-sm">両打</th>
+            <th class="header-pos-sub thick-right text-xs sm:text-sm">右打</th>
+            <th class="header-pos-sub text-xs sm:text-sm">左打</th>
+            <th class="header-pos-sub text-xs sm:text-sm">両打</th>
+            <th class="header-pos-sub thick-right text-xs sm:text-sm">右打</th>
+          </tr>
+        </thead>
+        <tbody id="sheetBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- カスタム確認モーダル -->
+  <div id="confirmModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl max-w-sm w-full p-5 shadow-xl border border-gray-200">
+      <h3 id="modalTitle" class="text-base font-black text-gray-900 mb-2">確認</h3>
+      <p id="modalMessage" class="text-sm text-gray-600 mb-5 leading-relaxed"></p>
+      <div class="flex justify-end gap-2">
+        <button id="modalCancelBtn" type="button" class="px-4 py-2 text-sm font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg cursor-pointer">
+          キャンセル
+        </button>
+        <button id="modalOkBtn" type="button" class="px-4 py-2 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg cursor-pointer">
+          実行する
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- トースト通知 -->
+  <div
+    id="statusToast"
+    class="fixed bottom-5 right-5 bg-gray-900 text-white text-xs sm:text-sm font-bold px-4 py-2.5 rounded-lg shadow-lg opacity-0 pointer-events-none transition-opacity duration-200 z-50"
+  ></div>
+
+  <script>
+    (function () {
+      const STORAGE_KEY = 'baseball_balance_sheet_gh_v1';
+
+      // 年齢行の定義（上から順：40~ 〜 ~19）
+      const AGE_ROWS = [
+        '40~', '39', '38', '37', '36', '35', '34', '33', '32', '31', '30',
+        '29', '28', '27', '26', '25', '24', '23', '22', '21', '20', '~19'
+      ];
+
+      // 列キーの定義
+      const COLUMNS = [
+        { key: 'p_l', groupClass: '' },
+        { key: 'p_r', groupClass: 'thick-right' },
+        { key: 'c',   groupClass: 'thick-right' },
+        { key: 'if_l', groupClass: '' },
+        { key: 'if_s', groupClass: '' },
+        { key: 'if_r', groupClass: 'thick-right' },
+        { key: 'of_l', groupClass: '' },
+        { key: 'of_s', groupClass: '' },
+        { key: 'of_r', groupClass: 'thick-right' }
+      ];
+
+      // 初期データ（名前が入っていない白紙状態）
+      function createEmptyInitialData() {
+        const emptyCells = {};
+        AGE_ROWS.forEach((age) => {
+          emptyCells[age] = {};
+          COLUMNS.forEach((col) => {
+            emptyCells[age][col.key] = [];
+          });
+        });
+        return {
+          year: '2026年度',
+          title: 'ポジション、年齢別／12球団バランスシート',
+          cells: emptyCells
+        };
+      }
+
+      // UTF-8対応 Base64 エンコード／デコード（共有URL生成用）
+      function encodeDataToHash(obj) {
+        try {
+          const json = JSON.stringify(obj);
+          const bytes = new TextEncoder().encode(json);
+          let binString = '';
+          bytes.forEach((b) => { binString += String.fromCharCode(b); });
+          return btoa(binString).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        } catch (e) {
+          return '';
+        }
+      }
+
+      function decodeDataFromHash(hashStr) {
+        try {
+          let b64 = hashStr.replace(/-/g, '+').replace(/_/g, '/');
+          while (b64.length % 4) b64 += '=';
+          const binString = atob(b64);
+          const bytes = new Uint8Array(binString.length);
+          for (let i = 0; i < binString.length; i++) {
+            bytes[i] = binString.charCodeAt(i);
+          }
+          const json = new TextDecoder().decode(bytes);
+          return JSON.parse(json);
+        } catch (e) {
+          return null;
+        }
+      }
+
+      // URLハッシュまたはブラウザ保存領域からデータ復元
+      function loadInitialState() {
+        try {
+          const hash = window.location.hash;
+          if (hash && hash.startsWith('#data=')) {
+            const decoded = decodeDataFromHash(hash.slice(6));
+            if (decoded && decoded.cells) {
+              return decoded;
+            }
+          }
+        } catch (e) {
+          console.warn('URLからの読み込みをスキップしました:', e);
+        }
+
+        try {
+          const saved = window['local' + 'Storage'].getItem(STORAGE_KEY);
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (parsed && parsed.cells) {
+              return parsed;
+            }
+          }
+        } catch (e) {
+          console.warn('ブラウザ保存領域からの読み込みをスキップしました:', e);
+        }
+
+        return createEmptyInitialData();
+      }
+
+      let state = loadInitialState();
+      let historyStack = [];
+      let toastTimer = null;
+      let isTapStyleMode = false;
+
+      // ブラウザ内への自動保存
+      function saveState(showNotify = false) {
+        updateSummary();
+        try {
+          window['local' + 'Storage'].setItem(STORAGE_KEY, JSON.stringify(state));
+          if (showNotify) {
+            showToast('保存しました');
+          }
+        } catch (e) {
+          console.error('Save failed:', e);
+        }
+      }
+
+      // 共有用URLを生成してクリップボードにコピー
+      function copyShareUrl() {
+        const encoded = encodeDataToHash(state);
+        if (!encoded) {
+          showToast('共有URLの生成に失敗しました');
+          return;
+        }
+        const baseUrl = window.location.href.split('#')[0];
+        const shareUrl = `${baseUrl}#data=${encoded}`;
+
+        // 現在のアドレスバーも最新状態に更新
+        try {
+          window.history.replaceState(null, '', `#data=${encoded}`);
+        } catch (e) {}
+
+        // iFrame・Safari・Chromeすべてで動作するコピー処理
+        const tempInput = document.createElement('textarea');
+        tempInput.value = shareUrl;
+        tempInput.style.position = 'fixed';
+        tempInput.style.opacity = '0';
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        tempInput.setSelectionRange(0, 99999);
+        try {
+          document.execCommand('copy');
+          showToast('共有URLをコピーしました！LINEやメールで送れます');
+        } catch (err) {
+          showToast('URLのコピーに失敗しました');
+        }
+        document.body.removeChild(tempInput);
+      }
+
+      let state = createEmptyInitialData();
+      let historyStack = [];
+      let toastTimer = null;
+      let isTapStyleMode = false; // iPad用：タップ装飾切替モードフラグ
+      let saveDebounceTimer = null;
+      let isApplyingRemoteUpdate = false;
+
+      // クラウド同期用の変数
+      let db = null;
+      let currentUser = null;
+      let sharedDocRef = null;
+
+      // 同期ステータスUI更新
+      function updateSyncStatus(statusType, text) {
+        const badge = document.getElementById('syncStatusBadge');
+        const dot = document.getElementById('syncDot');
+        const label = document.getElementById('syncText');
+        if (!badge || !dot || !label) return;
+
+        label.textContent = text;
+        dot.className = 'w-2.5 h-2.5 rounded-full';
+        badge.className = 'min-h-[42px] border font-bold text-xs px-3 py-2 rounded-lg flex items-center gap-1.5';
+
+        if (statusType === 'online') {
+          dot.classList.add('bg-emerald-500');
+          badge.classList.add('bg-emerald-50', 'text-emerald-800', 'border-emerald-200');
+        } else if (statusType === 'saving') {
+          dot.classList.add('bg-blue-500', 'animate-ping');
+          badge.classList.add('bg-blue-50', 'text-blue-800', 'border-blue-200');
+        } else {
+          dot.classList.add('bg-amber-500');
+          badge.classList.add('bg-amber-50', 'text-amber-800', 'border-amber-200');
+        }
+      }
+
+      // クラウドへのデータ保存（デバウンス処理付き）
+      function saveState(showNotify = false) {
+        updateSummary();
+        if (isApplyingRemoteUpdate) return;
+        if (!db || !currentUser || !sharedDocRef) return;
+
+        updateSyncStatus('saving', '同期中...');
+        clearTimeout(saveDebounceTimer);
+        saveDebounceTimer = setTimeout(async () => {
+          try {
+            // Firestoreのネスト制限を避けるためcellsはJSON文字列化して保存
+            const payload = {
+              year: state.year || '2026年度',
+              title: state.title || 'ポジション、年齢別／12球団バランスシート',
+              cellsJson: JSON.stringify(state.cells),
+              updatedAt: Date.now()
+            };
+            await setDoc(sharedDocRef, payload);
+            updateSyncStatus('online', '全員と共有中');
+            if (showNotify) {
+              showToast('クラウドに保存・共有しました');
+            }
+          } catch (e) {
+            console.error('Failed to save to cloud:', e);
+            updateSyncStatus('offline', '同期エラー');
+          }
+        }, 400);
+      }
+
+      // クラウド初期化とリアルタイム購読
+      async function initCloudSync() {
+        try {
+          if (typeof __firebase_config === 'undefined') {
+            updateSyncStatus('offline', 'ローカル表示中');
+            return;
+          }
+
+          const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+          const firebaseConfig = JSON.parse(__firebase_config);
+          const app = initializeApp(firebaseConfig);
+          const auth = getAuth(app);
+          db = getFirestore(app);
+
+          // 認証完了を待機（RULE 3準拠）
+          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+            const cred = await signInWithCustomToken(auth, __initial_auth_token);
+            currentUser = cred.user;
+          } else {
+            const cred = await signInAnonymously(auth);
+            currentUser = cred.user;
+          }
+
+          if (!currentUser) return;
+
+          // 誰でも閲覧・編集できる公開共有パス（RULE 1準拠）
+          sharedDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'balance_sheets', 'shared_main_sheet');
+
+          // リアルタイム監視開始
+          onSnapshot(
+            sharedDocRef,
+            (snapshot) => {
+              updateSyncStatus('online', '全員と共有中');
+              if (snapshot.exists()) {
+                const data = snapshot.data();
+                // 入力中のセルからフォーカスが外れないよう、アクティブな入力中でなければ即座に反映
+                const activeEl = document.activeElement;
+                const isEditingCell = activeEl && (activeEl.classList.contains('editable-cell') || activeEl.id === 'yearInput' || activeEl.id === 'sheetTitle');
+
+                if (!isEditingCell && data.cellsJson) {
+                  isApplyingRemoteUpdate = true;
+                  try {
+                    state = {
+                      year: data.year || '2026年度',
+                      title: data.title || 'ポジション、年齢別／12球団バランスシート',
+                      cells: JSON.parse(data.cellsJson)
+                    };
+                    renderTable();
+                  } finally {
+                    isApplyingRemoteUpdate = false;
+                  }
+                }
+              } else {
+                // 初回アクセス時は初期データをクラウドに作成
+                saveState(false);
+              }
+            },
+            (error) => {
+              console.error('Snapshot listener error:', error);
+              updateSyncStatus('offline', '共有接続エラー');
+            }
+          );
+        } catch (err) {
+          console.error('Cloud initialization error:', err);
+          updateSyncStatus('offline', 'オフライン動作');
+        }
+      }
+
+      // トースト通知
+      function showToast(msg) {
+        const el = document.getElementById('statusToast');
+        el.textContent = msg;
+        el.style.opacity = '1';
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => {
+          el.style.opacity = '0';
+        }, 2400);
+      }
+
+      // アンドゥ履歴へ積む
+      function pushHistory() {
+        historyStack.push(JSON.stringify(state));
+        if (historyStack.length > 20) historyStack.shift();
+        document.getElementById('undoBtn').disabled = historyStack.length === 0;
+      }
+
+      // 年齢行のCSSクラス取得
+      function getRowClass(ageStr) {
+        if (ageStr === '40~') return 'row-40plus';
+        if (ageStr === '~19') return 'row-19under';
+        const num = parseInt(ageStr, 10);
+        if (num >= 30) {
+          return num % 2 === 0 ? 'row-30s-even' : 'row-30s-odd';
+        }
+        return num % 2 === 1 ? 'row-20s-odd' : 'row-20s-even';
+      }
+
+      // 選手オブジェクト配列からHTML文字列を生成（タップ対象インデックス付与）
+      function renderPlayersHTML(players) {
+        if (!players || players.length === 0) return '';
+        return players
+          .map((p, idx) => {
+            const safeName = escapeHtml(p.name);
+            let styleClass = 'player-normal';
+            let styleAttr = 'normal';
+            if (p.style === 'red') {
+              styleClass = 'player-red';
+              styleAttr = 'red';
+            } else if (p.style === 'blue') {
+              styleClass = 'player-blue';
+              styleAttr = 'blue';
+            }
+            return `<span class="player-token ${styleClass}" data-style="${styleAttr}" data-idx="${idx}">${safeName}</span>`;
+          })
+          .join('・');
+      }
+
+      // HTMLエスケープ
+      function escapeHtml(str) {
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      // セルのDOM内容から選手データ配列へパース（フリーテキスト編集を柔軟に解析）
+      function parseCellDOMToPlayers(cellEl) {
+        const result = [];
+
+        // 子ノードを走査し、スタイル（red/blue/normal）を保持したままテキスト抽出
+        function extractSegments(node, currentStyle) {
+          if (node.nodeType === Node.TEXT_NODE) {
+            const text = node.textContent;
+            if (text) {
+              // 「・」「、」「,」や改行で区切る
+              const parts = text.split(/[・、,\n]+/);
+              parts.forEach((part) => {
+                const trimmed = part.trim();
+                if (trimmed) {
+                  result.push({ name: trimmed, style: currentStyle });
+                }
+              });
+            }
+          } else if (node.nodeType === Node.ELEMENT_NODE) {
+            let nextStyle = currentStyle;
+            if (node.classList.contains('player-red') || node.dataset.style === 'red') {
+              nextStyle = 'red';
+            } else if (node.classList.contains('player-blue') || node.dataset.style === 'blue') {
+              nextStyle = 'blue';
+            } else if (node.classList.contains('player-normal') || node.dataset.style === 'normal') {
+              nextStyle = 'normal';
+            }
+            node.childNodes.forEach((child) => extractSegments(child, nextStyle));
+          }
+        }
+
+        extractSegments(cellEl, 'normal');
+        return result;
+      }
+
+      // テーブル全体の描画
+      function renderTable() {
+        const tbody = document.getElementById('sheetBody');
+        tbody.innerHTML = '';
+
+        AGE_ROWS.forEach((age) => {
+          const tr = document.createElement('tr');
+          tr.className = getRowClass(age);
+
+          // 年齢列（Sticky左固定）
+          const ageTd = document.createElement('td');
+          ageTd.className = 'sticky-age-cell font-black text-sm sm:text-base text-gray-900 select-none';
+          ageTd.textContent = age;
+          tr.appendChild(ageTd);
+
+          // 各ポジション列
+          COLUMNS.forEach((col) => {
+            const td = document.createElement('td');
+            td.className = `editable-cell ${col.groupClass}`;
+            td.contentEditable = isTapStyleMode ? 'false' : 'true';
+            td.spellcheck = false;
+            td.dataset.age = age;
+            td.dataset.col = col.key;
+
+            const players = (state.cells[age] && state.cells[age][col.key]) || [];
+            td.innerHTML = renderPlayersHTML(players);
+
+            // タップ装飾切替モード時のクリック/タップ処理
+            td.addEventListener('click', (e) => {
+              if (!isTapStyleMode) return;
+              const tokenEl = e.target.closest('.player-token');
+              const currentList = (state.cells[age] && state.cells[age][col.key]) || [];
+              if (currentList.length === 0) return;
+
+              pushHistory();
+              const order = ['normal', 'red', 'blue'];
+
+              if (tokenEl && tokenEl.dataset.idx !== undefined) {
+                const idx = parseInt(tokenEl.dataset.idx, 10);
+                if (currentList[idx]) {
+                  const nextStyle = order[(order.indexOf(currentList[idx].style || 'normal') + 1) % order.length];
+                  currentList[idx].style = nextStyle;
+                }
+              } else {
+                // セルの余白をタップした場合は先頭選手のスタイルを切替
+                const nextStyle = order[(order.indexOf(currentList[0].style || 'normal') + 1) % order.length];
+                currentList[0].style = nextStyle;
+              }
+
+              td.innerHTML = renderPlayersHTML(currentList);
+              saveState(false);
+            });
+
+            // 入力完了時（blur）にデータを正規化＆保存
+            td.addEventListener('blur', () => {
+              if (isTapStyleMode) return;
+              const parsed = parseCellDOMToPlayers(td);
+              if (!state.cells[age]) state.cells[age] = {};
+              state.cells[age][col.key] = parsed;
+              td.innerHTML = renderPlayersHTML(parsed);
+              saveState(false);
+            });
+
+            // 入力中もリアルタイムでstate更新
+            td.addEventListener('input', () => {
+              if (isTapStyleMode) return;
+              const parsed = parseCellDOMToPlayers(td);
+              if (!state.cells[age]) state.cells[age] = {};
+              state.cells[age][col.key] = parsed;
+              saveState(false);
+            });
+
+            // Enterキーでの不要な改行を防ぎ確定（blur）にする
+            td.addEventListener('keydown', (e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                td.blur();
+              }
+            });
+
+            tr.appendChild(td);
+          });
+
+          tbody.appendChild(tr);
+        });
+
+        // 年度とタイトルの同期
+        const yearInput = document.getElementById('yearInput');
+        const yearBadge = document.getElementById('sheetYearBadge');
+        const titleEl = document.getElementById('sheetTitle');
+
+        yearInput.value = state.year !== undefined ? state.year : '2026年度';
+        yearBadge.textContent = state.year || '年度未設定';
+        titleEl.textContent = state.title || 'ポジション、年齢別／12球団バランスシート';
+
+        updateSummary();
+      }
+
+      // 登録選手数の集計表示
+      function updateSummary() {
+        let total = 0;
+        let pitchers = 0;
+        let catchers = 0;
+        let infielders = 0;
+        let outfielders = 0;
+
+        AGE_ROWS.forEach((age) => {
+          const row = state.cells[age] || {};
+          COLUMNS.forEach((col) => {
+            const count = (row[col.key] || []).length;
+            total += count;
+            if (col.key.startsWith('p_')) pitchers += count;
+            else if (col.key === 'c') catchers += count;
+            else if (col.key.startsWith('if_')) infielders += count;
+            else if (col.key.startsWith('of_')) outfielders += count;
+          });
+        });
+
+        document.getElementById('playerCountSummary').textContent =
+          `合計 ${total}名（投手:${pitchers} / 捕手:${catchers} / 内野:${infielders} / 外野:${outfielders}）`;
+      }
+
+      // 年度文字列を +1 する（例: "2026年度" -> "2027年度", "2026" -> "2027", 数字がない場合はそのまま）
+      function incrementYearString(str) {
+        const trimmed = String(str || '').trim();
+        const match = trimmed.match(/(\d+)/);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          return trimmed.replace(match[1], String(num + 1));
+        }
+        return trimmed;
+      }
+
+      // 全選手を1歳カウントアップして上の枠へ移動する処理
+      function advanceOneYear() {
+        pushHistory();
+
+        // 年度表記を +1
+        const nextYear = incrementYearString(state.year);
+        state.year = nextYear;
+
+        const newCells = {};
+        AGE_ROWS.forEach((age) => {
+          newCells[age] = {};
+          COLUMNS.forEach((col) => {
+            newCells[age][col.key] = [];
+          });
+        });
+
+        // 下から上へシフト（AGE_ROWS: index 0 が '40~', index 1 が '39', ..., index 21 が '~19'）
+        for (let i = AGE_ROWS.length - 1; i >= 0; i--) {
+          const currentAge = AGE_ROWS[i];
+          const currentRow = state.cells[currentAge] || {};
+
+          if (i === 0) {
+            // '40~' の選手はそのまま '40~' に残留（39歳から上がってきた選手と結合）
+            COLUMNS.forEach((col) => {
+              const staying = currentRow[col.key] || [];
+              newCells['40~'][col.key] = [...staying, ...newCells['40~'][col.key]];
+            });
+          } else {
+            // 1つ上の年齢行（index i - 1）へ移動
+            const targetAge = AGE_ROWS[i - 1];
+            COLUMNS.forEach((col) => {
+              const moving = currentRow[col.key] || [];
+              newCells[targetAge][col.key] = [...moving];
+            });
+          }
+        }
+
+        state.cells = newCells;
+        saveState(false);
+        renderTable();
+        showToast(nextYear ? `「${nextYear}」に更新し、全選手を +1歳 移動しました` : '全選手を +1歳 移動しました');
+      }
+
+      // 選択中のテキストの装飾（赤枠白字・青字・黒字）を変更
+      function applyStyleToSelection(styleType) {
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
+          showToast('装飾したい選手名をドラッグして選択してください');
+          return;
+        }
+
+        const range = selection.getRangeAt(0);
+        const container = range.commonAncestorContainer;
+        const cellEl = (container.nodeType === Node.ELEMENT_NODE ? container : container.parentElement)?.closest('.editable-cell');
+
+        if (!cellEl) {
+          showToast('表のマス目内の文字を選択してください');
+          return;
+        }
+
+        const age = cellEl.dataset.age;
+        const colKey = cellEl.dataset.col;
+        pushHistory();
+
+        const span = document.createElement('span');
+        span.className = styleType === 'red' ? 'player-red' : styleType === 'blue' ? 'player-blue' : 'player-normal';
+        span.dataset.style = styleType;
+
+        try {
+          const fragment = range.extractContents();
+          span.appendChild(fragment);
+          range.insertNode(span);
+          selection.removeAllRanges();
+
+          const parsed = parseCellDOMToPlayers(cellEl);
+          if (!state.cells[age]) state.cells[age] = {};
+          state.cells[age][colKey] = parsed;
+          cellEl.innerHTML = renderPlayersHTML(parsed);
+          saveState(false);
+        } catch (e) {
+          console.error('Style apply failed:', e);
+        }
+      }
+
+      // タップ装飾切替モードのON/OFF切り替え
+      function toggleTapStyleMode() {
+        isTapStyleMode = !isTapStyleMode;
+        const wrapper = document.getElementById('tableScrollWrapper');
+        const btn = document.getElementById('tapModeBtn');
+        const statusBadge = document.getElementById('tapModeStatus');
+        const guideText = document.getElementById('modeGuideText');
+
+        btn.setAttribute('aria-pressed', String(isTapStyleMode));
+
+        if (isTapStyleMode) {
+          wrapper.classList.add('tap-style-mode');
+          btn.classList.remove('bg-amber-50', 'border-amber-400', 'text-amber-900');
+          btn.classList.add('bg-amber-500', 'border-amber-600', 'text-white');
+          statusBadge.textContent = 'ON（タップで色変更）';
+          statusBadge.classList.remove('bg-gray-600');
+          statusBadge.classList.add('bg-gray-900');
+          guideText.innerHTML = '👆 <strong class="text-amber-800">タップ装飾モード中：</strong>選手名をタップするたびに「黒字 → 赤枠白字 → 青字」が切り替わります。文字を打つ時はOFFに戻してください。';
+        } else {
+          wrapper.classList.remove('tap-style-mode');
+          btn.classList.add('bg-amber-50', 'border-amber-400', 'text-amber-900');
+          btn.classList.remove('bg-amber-500', 'border-amber-600', 'text-white');
+          statusBadge.textContent = 'OFF（文字入力）';
+          statusBadge.classList.add('bg-gray-600');
+          statusBadge.classList.remove('bg-gray-900');
+          guideText.innerHTML = '💡 マス目をタップして<strong class="text-gray-800">直接フリーテキスト入力</strong>（複数名は「・」区切り）。色分けは上の「👆 タップ装飾切替」をONにすると指で簡単に切り替えられます。';
+        }
+
+        // contentEditable属性を更新
+        document.querySelectorAll('.editable-cell').forEach((cell) => {
+          cell.contentEditable = isTapStyleMode ? 'false' : 'true';
+        });
+      }
+
+      // カスタム確認ダイアログ
+      function openConfirmModal(title, message, onConfirm) {
+        const modal = document.getElementById('confirmModal');
+        document.getElementById('modalTitle').textContent = title;
+        document.getElementById('modalMessage').textContent = message;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+
+        const okBtn = document.getElementById('modalOkBtn');
+        const cancelBtn = document.getElementById('modalCancelBtn');
+
+        const cleanup = () => {
+          modal.classList.add('hidden');
+          modal.classList.remove('flex');
+          okBtn.onclick = null;
+          cancelBtn.onclick = null;
+        };
+
+        cancelBtn.onclick = cleanup;
+        okBtn.onclick = () => {
+          cleanup();
+          onConfirm();
+        };
+      }
+
+      // イベント初期化
+      function init() {
+        renderTable();
+
+        // URLハッシュから読み込んだ場合は通知を表示
+        if (window.location.hash && window.location.hash.startsWith('#data=')) {
+          saveState(false);
+          showToast('共有リンクのデータを読み込みました');
+        }
+
+        // 共有URLコピーボタン
+        document.getElementById('shareUrlBtn').addEventListener('click', copyShareUrl);
+
+        // タップ装飾切替モードボタン
+        document.getElementById('tapModeBtn').addEventListener('click', toggleTapStyleMode);
+
+        // 年度入力窓の変更イベント
+        const yearInput = document.getElementById('yearInput');
+        yearInput.addEventListener('input', (e) => {
+          state.year = e.target.value;
+          document.getElementById('sheetYearBadge').textContent = state.year || '年度未設定';
+          saveState(false);
+        });
+
+        // タイトル編集イベント
+        const titleEl = document.getElementById('sheetTitle');
+        titleEl.addEventListener('input', () => {
+          state.title = titleEl.textContent.trim();
+          saveState(false);
+        });
+
+        // 翌年度へ更新（+1歳）ボタン
+        document.getElementById('advanceYearBtn').addEventListener('click', advanceOneYear);
+
+        // 1つ戻すボタン
+        document.getElementById('undoBtn').addEventListener('click', () => {
+          if (historyStack.length === 0) return;
+          const prev = historyStack.pop();
+          state = JSON.parse(prev);
+          document.getElementById('undoBtn').disabled = historyStack.length === 0;
+          saveState(false);
+          renderTable();
+          showToast('1つ前の状態に戻しました');
+        });
+
+        // 文字装飾ボタン（mousedownで選択解除を防ぐ）
+        document.querySelectorAll('.style-btn').forEach((btn) => {
+          btn.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            applyStyleToSelection(btn.dataset.style);
+          });
+        });
+
+        // JSONエクスポート（保存）
+        document.getElementById('exportBtn').addEventListener('click', () => {
+          try {
+            const jsonStr = JSON.stringify(state, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const safeYear = (state.year || 'balance_sheet').replace(/[\\/:*?"<>|]/g, '_');
+            a.href = url;
+            a.download = `baseball_balance_sheet_${safeYear}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('JSONファイルをダウンロードしました');
+          } catch (e) {
+            console.error(e);
+            showToast('ファイルの書き出しに失敗しました');
+          }
+        });
+
+        // JSONインポート（読込）
+        const importInput = document.getElementById('importFileInput');
+        document.getElementById('importBtn').addEventListener('click', () => {
+          importInput.value = '';
+          importInput.click();
+        });
+        importInput.addEventListener('change', (e) => {
+          const file = e.target.files && e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            try {
+              const parsed = JSON.parse(ev.target.result);
+              if (!parsed || typeof parsed.cells !== 'object') {
+                throw new Error('Invalid format');
+              }
+              pushHistory();
+              state = parsed;
+              saveState(false);
+              renderTable();
+              showToast('JSONデータを読み込みました');
+            } catch (err) {
+              console.error(err);
+              showToast('無効なJSONファイルです');
+            }
+          };
+          reader.readAsText(file);
+        });
+
+        // 白紙リセットボタン
+        document.getElementById('resetBtn').addEventListener('click', () => {
+          openConfirmModal(
+            '白紙状態にリセット',
+            '現在入力されているすべての選手名を消去し、白紙（空欄）の初期状態に戻しますか？',
+            () => {
+              pushHistory();
+              state = createEmptyInitialData();
+              saveState(false);
+              renderTable();
+              showToast('白紙状態にリセットしました');
+            }
+          );
+        });
+      }
+
+      window.addEventListener('DOMContentLoaded', init);
+    })();
+  </script>
+</body>
+</html>
