@@ -16,23 +16,19 @@
       -webkit-tap-highlight-color: transparent;
     }
 
-    /* スクロール領域とSticky固定（iPad縦向き・横向き最適化） */
+    /* スクロールなし・1画面画角フィット設計 */
     .table-scroll-wrapper {
-      overflow-x: auto;
-      overflow-y: auto;
-      max-height: 76vh;
-      -webkit-overflow-scrolling: touch;
+      overflow: hidden;
       border: 1.5px solid #374151;
       border-radius: 6px;
       position: relative;
+      width: 100%;
     }
 
-    /* バランスシート特有の太線・配色再現 */
+    /* バランスシート特有の太線・配色再現（横幅100%固定・横スクロール廃止） */
     .bs-table {
-      border-collapse: separate;
-      border-spacing: 0;
+      border-collapse: collapse;
       width: 100%;
-      min-width: 980px;
       table-layout: fixed;
       background: #ffffff;
     }
@@ -41,52 +37,33 @@
     .bs-table td {
       border-bottom: 1px solid #d1d5db;
       border-right: 1.5px solid #4b5563;
-      padding: 4px 4px;
+      padding: 1px 2px;
       text-align: center;
       vertical-align: middle;
-      line-height: 1.3;
-      word-break: keep-all;
+      line-height: 1.15;
+      word-break: break-all;
+      overflow-wrap: anywhere;
     }
 
     /* ポジション大分類の太い縦境界線 */
-    .thick-left {
-      border-left: 3px solid #1f2937 !important;
-    }
     .thick-right {
-      border-right: 3.5px solid #1f2937 !important;
+      border-right: 3px solid #1f2937 !important;
     }
 
-    /* Sticky ヘッダー固定（上下スクロール追従） */
-    .bs-table thead tr:nth-child(1) th {
-      position: sticky;
-      top: 0;
-      z-index: 20;
-    }
-    .bs-table thead tr:nth-child(2) th {
-      position: sticky;
-      top: 34px;
-      z-index: 20;
-    }
-
-    /* Sticky 左端「年齢」列固定（左右スクロール追従） */
+    /* 左端「年齢」列 */
     .sticky-age-header {
-      position: sticky !important;
-      left: 0;
-      top: 0;
-      z-index: 30 !important;
       background-color: #1f2937;
       color: #ffffff;
       font-weight: 900;
-      border-right: 3.5px solid #1f2937 !important;
-      border-bottom: 2.5px solid #1f2937 !important;
+      border-right: 3px solid #1f2937 !important;
+      border-bottom: 2px solid #1f2937 !important;
+      font-size: clamp(10px, 1.1vw, 13px);
     }
 
     .sticky-age-cell {
-      position: sticky;
-      left: 0;
-      z-index: 10;
-      border-right: 3.5px solid #1f2937 !important;
-      background-color: inherit;
+      border-right: 3px solid #1f2937 !important;
+      font-size: clamp(10px, 1.15vw, 13px);
+      padding: 1px 0 !important;
     }
 
     /* ヘッダー配色 */
@@ -94,19 +71,21 @@
       background-color: #004499;
       color: #ffe600;
       font-weight: 900;
-      letter-spacing: 0.08em;
-      height: 34px;
-      border-bottom: 2px solid #1f2937 !important;
+      letter-spacing: 0.05em;
+      height: 26px;
+      border-bottom: 1.5px solid #1f2937 !important;
+      font-size: clamp(11px, 1.3vw, 15px);
     }
     .header-pos-sub {
       background-color: #ffffff;
       color: #008000;
       font-weight: 900;
-      height: 28px;
-      border-bottom: 2.5px solid #1f2937 !important;
+      height: 22px;
+      border-bottom: 2px solid #1f2937 !important;
+      font-size: clamp(10px, 1.15vw, 13px);
     }
 
-    /* 年齢別行の背景色（画像準拠・Sticky列でも透過しないよう明示指定） */
+    /* 年齢別行の背景色 */
     .row-40plus, .row-40plus .sticky-age-cell { background-color: #f3d6e4; }
     .row-30s-even, .row-30s-even .sticky-age-cell { background-color: #dedbe6; }
     .row-30s-odd, .row-30s-odd .sticky-age-cell { background-color: #ffffff; }
@@ -114,21 +93,21 @@
     .row-20s-even, .row-20s-even .sticky-age-cell { background-color: #ffffff; }
     .row-19under, .row-19under .sticky-age-cell { background-color: #d5e2d8; }
 
-    /* 編集可能セルのスタイル（iPadタップ領域・ズーム防止16px対応） */
+    /* 編集可能セルのスタイル（1画面に全22行収まる高さ・画面幅連動フォント） */
     .editable-cell {
-      min-height: 34px;
+      height: 24px;
       cursor: text;
       font-weight: 800;
-      font-size: 15px;
+      font-size: clamp(10px, 1.15vw, 13.5px);
       transition: box-shadow 0.15s ease, background-color 0.15s ease;
       outline: none;
     }
     .editable-cell:hover {
-      box-shadow: inset 0 0 0 2px rgba(0, 68, 153, 0.35);
+      box-shadow: inset 0 0 0 1.5px rgba(0, 68, 153, 0.45);
     }
     .editable-cell:focus {
-      box-shadow: inset 0 0 0 2.5px #004499;
-      background-color: rgba(255, 255, 255, 0.95) !important;
+      box-shadow: inset 0 0 0 2px #004499;
+      background-color: rgba(255, 255, 255, 0.96) !important;
     }
 
     /* タップ装飾切替モード時のスタイル */
@@ -138,21 +117,20 @@
       -webkit-user-select: none;
     }
     .tap-style-mode .player-token {
-      padding: 2px 5px;
-      border-radius: 4px;
-      border: 1px dashed rgba(0, 68, 153, 0.45);
+      padding: 0 3px;
+      border-radius: 3px;
+      border: 1px dashed rgba(0, 68, 153, 0.5);
       display: inline-block;
-      margin: 1px 0;
     }
 
     /* 選手名の装飾（画像準拠） */
     .player-red {
       background-color: #e60012;
       color: #ffffff;
-      padding: 1px 4px;
+      padding: 0 3px;
       border-radius: 2px;
       display: inline-block;
-      line-height: 1.2;
+      line-height: 1.15;
     }
     .player-blue {
       color: #005bac;
@@ -170,8 +148,6 @@
         background: #ffffff;
       }
       .table-scroll-wrapper {
-        max-height: none !important;
-        overflow: visible !important;
         border: none !important;
       }
       .sheet-container {
@@ -182,22 +158,22 @@
     }
   </style>
 </head>
-<body class="p-2 sm:p-4 md:p-5">
+<body class="p-1.5 sm:p-2.5">
 
-  <!-- 操作ツールバー（上部・iPadタッチ最適化） -->
-  <div class="no-print max-w-[1280px] mx-auto mb-3 bg-white rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4">
-    <div class="flex flex-wrap items-center justify-between gap-2.5">
+  <!-- 操作ツールバー（上部コンパクト配置） -->
+  <div class="no-print max-w-[1400px] mx-auto mb-2 bg-white rounded-xl shadow-sm border border-gray-200 px-3 py-2">
+    <div class="flex flex-wrap items-center justify-between gap-2">
       
       <!-- 年度入力窓＆年度更新コントロール -->
-      <div class="flex flex-wrap items-center gap-2">
-        <div class="flex items-center bg-blue-50 border-2 border-[#004499] rounded-lg px-2.5 py-1 min-h-[42px] shadow-inner">
-          <label for="yearInput" class="text-xs sm:text-sm font-bold text-[#004499] mr-1.5 whitespace-nowrap">対象年度：</label>
+      <div class="flex flex-wrap items-center gap-1.5">
+        <div class="flex items-center bg-blue-50 border-2 border-[#004499] rounded-lg px-2 py-0.5 min-h-[36px] shadow-inner">
+          <label for="yearInput" class="text-xs font-bold text-[#004499] mr-1 whitespace-nowrap">年度：</label>
           <input
             id="yearInput"
             type="text"
             value="2026年度"
             aria-label="対象年度"
-            class="w-28 sm:w-32 text-base font-black text-gray-900 bg-white border border-blue-300 rounded px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-[#004499]"
+            class="w-24 sm:w-28 text-sm font-black text-gray-900 bg-white border border-blue-300 rounded px-1.5 py-0.5 text-center focus:outline-none focus:ring-2 focus:ring-[#004499]"
             placeholder="例: 2026年度"
           />
         </div>
@@ -205,18 +181,17 @@
         <button
           id="advanceYearBtn"
           type="button"
-          class="min-h-[42px] bg-[#004499] hover:bg-blue-800 active:scale-[0.98] text-white font-bold text-xs sm:text-sm px-3.5 py-2 rounded-lg shadow transition flex items-center gap-1.5 cursor-pointer"
+          class="min-h-[36px] bg-[#004499] hover:bg-blue-800 active:scale-[0.98] text-white font-bold text-xs px-3 py-1.5 rounded-lg shadow transition flex items-center gap-1 cursor-pointer"
           title="年度を1つ進め、全選手の年齢を1歳上へ移動します"
         >
           <span>翌年度へ更新（+1歳）</span>
-          <span class="bg-white/20 text-white text-[11px] px-1.5 py-0.5 rounded">▲1歳</span>
         </button>
 
         <button
           id="undoBtn"
           type="button"
           disabled
-          class="min-h-[42px] bg-gray-100 hover:bg-gray-200 disabled:opacity-40 disabled:pointer-events-none text-gray-700 font-bold text-xs sm:text-sm px-3 py-2 rounded-lg border border-gray-300 transition cursor-pointer"
+          class="min-h-[36px] bg-gray-100 hover:bg-gray-200 disabled:opacity-40 disabled:pointer-events-none text-gray-700 font-bold text-xs px-2.5 py-1.5 rounded-lg border border-gray-300 transition cursor-pointer"
           title="直前の操作を取り消します"
         >
           ↩ 戻す
@@ -224,40 +199,37 @@
       </div>
 
       <!-- iPadタッチ対応：タップ装飾切替モード & データ管理 -->
-      <div class="flex flex-wrap items-center gap-2">
-        <!-- URL共有ボタン（GitHub Pages用：現在の入力内容をリンク化してコピー） -->
+      <div class="flex flex-wrap items-center gap-1.5">
         <button
           id="shareUrlBtn"
           type="button"
-          class="min-h-[42px] bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-xs sm:text-sm px-3.5 py-2 rounded-lg shadow-sm flex items-center gap-1.5 transition cursor-pointer"
-          title="現在の入力内容を含んだ共有用URLをコピーします。LINE等で送ると他の端末でも同じ内容が開きます"
+          class="min-h-[36px] bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-xs px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-1 transition cursor-pointer"
+          title="現在の入力内容を含んだ共有用URLをコピーします"
         >
-          <span>🔗 共有URLコピー</span>
+          <span>🔗 共有URL</span>
         </button>
 
-        <!-- タップ装飾切替モードトグル（iPad最適化の要） -->
         <button
           id="tapModeBtn"
           type="button"
           aria-pressed="false"
-          class="min-h-[42px] bg-amber-50 hover:bg-amber-100 text-amber-900 border-2 border-amber-400 font-black text-xs sm:text-sm px-3 py-2 rounded-lg transition flex items-center gap-1.5 cursor-pointer"
-          title="ONにすると、文字入力の代わりに選手名をタップするだけで『黒字→赤枠白字→青字』を切り替えられます"
+          class="min-h-[36px] bg-amber-50 hover:bg-amber-100 text-amber-900 border-2 border-amber-400 font-black text-xs px-2.5 py-1.5 rounded-lg transition flex items-center gap-1 cursor-pointer"
+          title="ONにすると選手名をタップするだけで『黒字→赤枠白字→青字』を切り替えられます"
         >
-          <span>👆 タップ装飾切替:</span>
-          <span id="tapModeStatus" class="bg-gray-600 text-white text-[11px] px-2 py-0.5 rounded">OFF（文字入力）</span>
+          <span>👆 タップ装飾:</span>
+          <span id="tapModeStatus" class="bg-gray-600 text-white text-[10px] px-1.5 py-0.5 rounded">OFF</span>
         </button>
 
-        <!-- PC向けドラッグ選択装飾ボタン -->
-        <div class="hidden lg:flex items-center gap-1 bg-gray-100 p-1 rounded-lg border border-gray-200 min-h-[42px]" title="セル内の文字を選択してクリックすると色を変更できます">
-          <button type="button" data-style="normal" class="style-btn px-2.5 py-1.5 text-xs font-bold bg-white text-gray-900 rounded border border-gray-300 hover:bg-gray-50 cursor-pointer">黒字</button>
-          <button type="button" data-style="red" class="style-btn px-2.5 py-1.5 text-xs font-bold bg-[#e60012] text-white rounded hover:opacity-90 cursor-pointer">赤枠</button>
-          <button type="button" data-style="blue" class="style-btn px-2.5 py-1.5 text-xs font-bold bg-white text-[#005bac] rounded border border-gray-300 hover:bg-blue-50 cursor-pointer">青字</button>
+        <div class="hidden lg:flex items-center gap-1 bg-gray-100 p-0.5 rounded-lg border border-gray-200 min-h-[36px]">
+          <button type="button" data-style="normal" class="style-btn px-2 py-1 text-xs font-bold bg-white text-gray-900 rounded border border-gray-300 hover:bg-gray-50 cursor-pointer">黒字</button>
+          <button type="button" data-style="red" class="style-btn px-2 py-1 text-xs font-bold bg-[#e60012] text-white rounded hover:opacity-90 cursor-pointer">赤枠</button>
+          <button type="button" data-style="blue" class="style-btn px-2 py-1 text-xs font-bold bg-white text-[#005bac] rounded border border-gray-300 hover:bg-blue-50 cursor-pointer">青字</button>
         </div>
 
         <button
           id="exportBtn"
           type="button"
-          class="min-h-[42px] bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 font-bold text-xs sm:text-sm px-3 py-2 rounded-lg transition cursor-pointer"
+          class="min-h-[36px] bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 font-bold text-xs px-2.5 py-1.5 rounded-lg transition cursor-pointer"
         >
           保存
         </button>
@@ -265,7 +237,7 @@
         <button
           id="importBtn"
           type="button"
-          class="min-h-[42px] bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 font-bold text-xs sm:text-sm px-3 py-2 rounded-lg transition cursor-pointer"
+          class="min-h-[36px] bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 font-bold text-xs px-2.5 py-1.5 rounded-lg transition cursor-pointer"
         >
           読込
         </button>
@@ -274,7 +246,7 @@
         <button
           id="resetBtn"
           type="button"
-          class="min-h-[42px] bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-bold text-xs sm:text-sm px-3 py-2 rounded-lg transition cursor-pointer"
+          class="min-h-[36px] bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-bold text-xs px-2.5 py-1.5 rounded-lg transition cursor-pointer"
         >
           白紙リセット
         </button>
@@ -282,69 +254,69 @@
     </div>
 
     <!-- ガイド表示・集計サマリー -->
-    <div class="mt-2.5 pt-2 border-t border-gray-100 flex flex-wrap items-center justify-between gap-2 text-xs text-gray-600">
-      <div id="modeGuideText" class="flex-1 min-w-[260px]">
-        💡 マス目をタップして<strong class="text-gray-800">直接フリーテキスト入力</strong>（複数名は「・」区切り）。色分けは上の「👆 タップ装飾切替」をONにすると指で簡単に切り替えられます。
+    <div class="mt-1.5 pt-1.5 border-t border-gray-100 flex flex-wrap items-center justify-between gap-2 text-[11px] text-gray-600">
+      <div id="modeGuideText" class="flex-1 min-w-[220px]">
+        💡 枠をタップして<strong class="text-gray-800">直接文字入力</strong>（複数名は「・」区切り）。色分けは「👆 タップ装飾」をONにしてタップで切替。
       </div>
-      <div id="playerCountSummary" class="font-bold text-gray-800 bg-gray-100 px-2.5 py-1 rounded">
+      <div id="playerCountSummary" class="font-bold text-gray-800 bg-gray-100 px-2 py-0.5 rounded">
         合計 0名（投手:0 / 捕手:0 / 内野:0 / 外野:0）
       </div>
     </div>
   </div>
 
-  <!-- バランスシート本体 -->
-  <div class="sheet-container max-w-[1280px] mx-auto bg-white p-3 sm:p-5 rounded-xl shadow-md border border-gray-200">
+  <!-- バランスシート本体（1画面フィット） -->
+  <div class="sheet-container max-w-[1400px] mx-auto bg-white p-2 sm:p-3 rounded-xl shadow-md border border-gray-200">
     <!-- タイトル行 -->
-    <div class="flex flex-wrap items-center justify-center gap-2 mb-3">
-      <span id="sheetYearBadge" class="bg-[#004499] text-white font-black text-sm sm:text-base px-3 py-1 rounded-md shadow-sm">
+    <div class="flex flex-wrap items-center justify-center gap-2 mb-1.5">
+      <span id="sheetYearBadge" class="bg-[#004499] text-white font-black text-xs sm:text-sm px-2.5 py-0.5 rounded shadow-sm">
         2026年度
       </span>
       <h1
         id="sheetTitle"
         contenteditable="true"
         spellcheck="false"
-        class="text-lg sm:text-2xl font-black text-gray-800 tracking-wide text-center px-2 py-0.5 rounded hover:bg-gray-100 focus:bg-blue-50 focus:outline-none"
+        class="text-base sm:text-xl font-black text-gray-800 tracking-wide text-center px-2 rounded hover:bg-gray-100 focus:bg-blue-50 focus:outline-none"
         title="クリックしてタイトルも自由に編集できます"
       >
         ポジション、年齢別／12球団バランスシート
       </h1>
     </div>
 
-    <!-- テーブルスクロールラッパー -->
+    <!-- テーブルラッパー（横スクロールなし・全列100%フィット） -->
     <div id="tableScrollWrapper" class="table-scroll-wrapper">
       <table id="sheetTable" class="bs-table">
         <colgroup>
-          <col style="width: 54px;" />
-          <col style="width: 10.5%;" />
-          <col style="width: 11.5%;" />
+          <col style="width: 4.5%;" />
+          <col style="width: 10.6%;" />
+          <col style="width: 11.6%;" />
           <col style="width: 9.5%;" />
-          <col style="width: 10.5%;" />
+          <col style="width: 10.6%;" />
           <col style="width: 8.5%;" />
-          <col style="width: 10.5%;" />
-          <col style="width: 10.5%;" />
+          <col style="width: 10.6%;" />
+          <col style="width: 10.6%;" />
           <col style="width: 8.5%;" />
-          <col style="width: 10.5%;" />
+          <col style="width: 10.6%;" />
         </colgroup>
         <thead>
           <tr>
-            <th rowspan="2" class="sticky-age-header text-xs sm:text-sm leading-tight">
+            <th rowspan="2" class="sticky-age-header leading-tight">
               年<br />齢
             </th>
-            <th colspan="2" class="header-pos-main thick-right text-sm sm:text-base">投手</th>
-            <th class="header-pos-main thick-right text-sm sm:text-base">捕手</th>
-            <th colspan="3" class="header-pos-main thick-right text-sm sm:text-base">内野手</th>
-            <th colspan="3" class="header-pos-main thick-right text-sm sm:text-base">外野手</th>
+            <th colspan="2" class="header-pos-main thick-right">投手</th>
+            <th class="header-pos-main thick-right">捕手</th>
+            <th colspan="3" class="header-pos-main thick-right">内野手</th>
+            <th colspan="3" class="header-pos-main thick-right">外野手</th>
           </tr>
           <tr>
-            <th class="header-pos-sub text-xs sm:text-sm">左投</th>
-            <th class="header-pos-sub thick-right text-xs sm:text-sm">右投</th>
-            <th class="header-pos-sub thick-right text-xs sm:text-sm"></th>
-            <th class="header-pos-sub text-xs sm:text-sm">左打</th>
-            <th class="header-pos-sub text-xs sm:text-sm">両打</th>
-            <th class="header-pos-sub thick-right text-xs sm:text-sm">右打</th>
-            <th class="header-pos-sub text-xs sm:text-sm">左打</th>
-            <th class="header-pos-sub text-xs sm:text-sm">両打</th>
-            <th class="header-pos-sub thick-right text-xs sm:text-sm">右打</th>
+            <th class="header-pos-sub">左投</th>
+            <th class="header-pos-sub thick-right">右投</th>
+            <th class="header-pos-sub thick-right"></th>
+            <th class="header-pos-sub">左打</th>
+            <th class="header-pos-sub">両打</th>
+            <th class="header-pos-sub thick-right">右打</th>
+            <th class="header-pos-sub">左打</th>
+            <th class="header-pos-sub">両打</th>
+            <th class="header-pos-sub thick-right">右打</th>
           </tr>
         </thead>
         <tbody id="sheetBody"></tbody>
@@ -371,20 +343,18 @@
   <!-- トースト通知 -->
   <div
     id="statusToast"
-    class="fixed bottom-5 right-5 bg-gray-900 text-white text-xs sm:text-sm font-bold px-4 py-2.5 rounded-lg shadow-lg opacity-0 pointer-events-none transition-opacity duration-200 z-50"
+    class="fixed bottom-4 right-4 bg-gray-900 text-white text-xs sm:text-sm font-bold px-4 py-2 rounded-lg shadow-lg opacity-0 pointer-events-none transition-opacity duration-200 z-50"
   ></div>
 
   <script>
     (function () {
       const STORAGE_KEY = 'baseball_balance_sheet_gh_v1';
 
-      // 年齢行の定義（上から順：40~ 〜 ~19）
       const AGE_ROWS = [
         '40~', '39', '38', '37', '36', '35', '34', '33', '32', '31', '30',
         '29', '28', '27', '26', '25', '24', '23', '22', '21', '20', '~19'
       ];
 
-      // 列キーの定義
       const COLUMNS = [
         { key: 'p_l', groupClass: '' },
         { key: 'p_r', groupClass: 'thick-right' },
@@ -397,7 +367,6 @@
         { key: 'of_r', groupClass: 'thick-right' }
       ];
 
-      // 初期データ（名前が入っていない白紙状態）
       function createEmptyInitialData() {
         const emptyCells = {};
         AGE_ROWS.forEach((age) => {
@@ -413,7 +382,6 @@
         };
       }
 
-      // UTF-8対応 Base64 エンコード／デコード（共有URL生成用）
       function encodeDataToHash(obj) {
         try {
           const json = JSON.stringify(obj);
@@ -442,7 +410,6 @@
         }
       }
 
-      // URLハッシュまたはブラウザ保存領域からデータ復元
       function loadInitialState() {
         try {
           const hash = window.location.hash;
@@ -452,9 +419,7 @@
               return decoded;
             }
           }
-        } catch (e) {
-          console.warn('URLからの読み込みをスキップしました:', e);
-        }
+        } catch (e) {}
 
         try {
           const saved = window['local' + 'Storage'].getItem(STORAGE_KEY);
@@ -464,9 +429,7 @@
               return parsed;
             }
           }
-        } catch (e) {
-          console.warn('ブラウザ保存領域からの読み込みをスキップしました:', e);
-        }
+        } catch (e) {}
 
         return createEmptyInitialData();
       }
@@ -476,24 +439,19 @@
       let toastTimer = null;
       let isTapStyleMode = false;
 
-      // ブラウザ内への自動保存
       function saveState(showNotify = false) {
         updateSummary();
         try {
           window['local' + 'Storage'].setItem(STORAGE_KEY, JSON.stringify(state));
-          // 共有URLハッシュが残っているとリロードや戻る操作時に古いデータで上書きされるため消去する
           if (window.location.hash && window.location.hash.startsWith('#data=')) {
             window.history.replaceState(null, '', window.location.pathname + window.location.search);
           }
           if (showNotify) {
             showToast('保存しました');
           }
-        } catch (e) {
-          console.error('Save failed:', e);
-        }
+        } catch (e) {}
       }
 
-      // 共有用URLを生成してクリップボードにコピー
       function copyShareUrl() {
         const encoded = encodeDataToHash(state);
         if (!encoded) {
@@ -503,12 +461,10 @@
         const baseUrl = window.location.href.split('#')[0];
         const shareUrl = `${baseUrl}#data=${encoded}`;
 
-        // 現在のアドレスバーも最新状態に更新
         try {
           window.history.replaceState(null, '', `#data=${encoded}`);
         } catch (e) {}
 
-        // iFrame・Safari・Chromeすべてで動作するコピー処理
         const tempInput = document.createElement('textarea');
         tempInput.value = shareUrl;
         tempInput.style.position = 'fixed';
@@ -525,7 +481,6 @@
         document.body.removeChild(tempInput);
       }
 
-      // トースト通知
       function showToast(msg) {
         const el = document.getElementById('statusToast');
         el.textContent = msg;
@@ -536,14 +491,12 @@
         }, 2400);
       }
 
-      // アンドゥ履歴へ積む
       function pushHistory() {
         historyStack.push(JSON.stringify(state));
         if (historyStack.length > 20) historyStack.shift();
         document.getElementById('undoBtn').disabled = historyStack.length === 0;
       }
 
-      // 年齢行のCSSクラス取得
       function getRowClass(ageStr) {
         if (ageStr === '40~') return 'row-40plus';
         if (ageStr === '~19') return 'row-19under';
@@ -554,7 +507,6 @@
         return num % 2 === 1 ? 'row-20s-odd' : 'row-20s-even';
       }
 
-      // 選手オブジェクト配列からHTML文字列を生成（タップ対象インデックス付与）
       function renderPlayersHTML(players) {
         if (!players || players.length === 0) return '';
         return players
@@ -574,7 +526,6 @@
           .join('・');
       }
 
-      // HTMLエスケープ
       function escapeHtml(str) {
         return String(str)
           .replace(/&/g, '&amp;')
@@ -583,16 +534,12 @@
           .replace(/"/g, '&quot;');
       }
 
-      // セルのDOM内容から選手データ配列へパース（フリーテキスト編集を柔軟に解析）
       function parseCellDOMToPlayers(cellEl) {
         const result = [];
-
-        // 子ノードを走査し、スタイル（red/blue/normal）を保持したままテキスト抽出
         function extractSegments(node, currentStyle) {
           if (node.nodeType === Node.TEXT_NODE) {
             const text = node.textContent;
             if (text) {
-              // 「・」「、」「,」や改行で区切る
               const parts = text.split(/[・、,\n]+/);
               parts.forEach((part) => {
                 const trimmed = part.trim();
@@ -613,12 +560,10 @@
             node.childNodes.forEach((child) => extractSegments(child, nextStyle));
           }
         }
-
         extractSegments(cellEl, 'normal');
         return result;
       }
 
-      // テーブル全体の描画
       function renderTable() {
         const tbody = document.getElementById('sheetBody');
         tbody.innerHTML = '';
@@ -627,13 +572,11 @@
           const tr = document.createElement('tr');
           tr.className = getRowClass(age);
 
-          // 年齢列（Sticky左固定）
           const ageTd = document.createElement('td');
-          ageTd.className = 'sticky-age-cell font-black text-sm sm:text-base text-gray-900 select-none';
+          ageTd.className = 'sticky-age-cell font-black text-gray-900 select-none';
           ageTd.textContent = age;
           tr.appendChild(ageTd);
 
-          // 各ポジション列
           COLUMNS.forEach((col) => {
             const td = document.createElement('td');
             td.className = `editable-cell ${col.groupClass}`;
@@ -645,7 +588,6 @@
             const players = (state.cells[age] && state.cells[age][col.key]) || [];
             td.innerHTML = renderPlayersHTML(players);
 
-            // タップ装飾切替モード時のクリック/タップ処理
             td.addEventListener('click', (e) => {
               if (!isTapStyleMode) return;
               const tokenEl = e.target.closest('.player-token');
@@ -662,7 +604,6 @@
                   currentList[idx].style = nextStyle;
                 }
               } else {
-                // セルの余白をタップした場合は先頭選手のスタイルを切替
                 const nextStyle = order[(order.indexOf(currentList[0].style || 'normal') + 1) % order.length];
                 currentList[0].style = nextStyle;
               }
@@ -671,7 +612,6 @@
               saveState(false);
             });
 
-            // 入力完了時（blur）にデータを正規化＆保存
             td.addEventListener('blur', () => {
               if (isTapStyleMode) return;
               const parsed = parseCellDOMToPlayers(td);
@@ -681,7 +621,6 @@
               saveState(false);
             });
 
-            // 入力中もリアルタイムでstate更新
             td.addEventListener('input', () => {
               if (isTapStyleMode) return;
               const parsed = parseCellDOMToPlayers(td);
@@ -690,7 +629,6 @@
               saveState(false);
             });
 
-            // iPad日本語入力（予測変換確定時）の即座保存
             td.addEventListener('compositionend', () => {
               if (isTapStyleMode) return;
               const parsed = parseCellDOMToPlayers(td);
@@ -699,7 +637,6 @@
               saveState(false);
             });
 
-            // Enterキーでの不要な改行を防ぎ確定（blur）にする
             td.addEventListener('keydown', (e) => {
               if (e.key === 'Enter') {
                 e.preventDefault();
@@ -713,7 +650,6 @@
           tbody.appendChild(tr);
         });
 
-        // 年度とタイトルの同期
         const yearInput = document.getElementById('yearInput');
         const yearBadge = document.getElementById('sheetYearBadge');
         const titleEl = document.getElementById('sheetTitle');
@@ -725,7 +661,6 @@
         updateSummary();
       }
 
-      // 登録選手数の集計表示
       function updateSummary() {
         let total = 0;
         let pitchers = 0;
@@ -749,7 +684,6 @@
           `合計 ${total}名（投手:${pitchers} / 捕手:${catchers} / 内野:${infielders} / 外野:${outfielders}）`;
       }
 
-      // 年度文字列を +1 する（例: "2026年度" -> "2027年度", "2026" -> "2027", 数字がない場合はそのまま）
       function incrementYearString(str) {
         const trimmed = String(str || '').trim();
         const match = trimmed.match(/(\d+)/);
@@ -760,11 +694,8 @@
         return trimmed;
       }
 
-      // 全選手を1歳カウントアップして上の枠へ移動する処理
       function advanceOneYear() {
         pushHistory();
-
-        // 年度表記を +1
         const nextYear = incrementYearString(state.year);
         state.year = nextYear;
 
@@ -776,19 +707,16 @@
           });
         });
 
-        // 下から上へシフト（AGE_ROWS: index 0 が '40~', index 1 が '39', ..., index 21 が '~19'）
         for (let i = AGE_ROWS.length - 1; i >= 0; i--) {
           const currentAge = AGE_ROWS[i];
           const currentRow = state.cells[currentAge] || {};
 
           if (i === 0) {
-            // '40~' の選手はそのまま '40~' に残留（39歳から上がってきた選手と結合）
             COLUMNS.forEach((col) => {
               const staying = currentRow[col.key] || [];
               newCells['40~'][col.key] = [...staying, ...newCells['40~'][col.key]];
             });
           } else {
-            // 1つ上の年齢行（index i - 1）へ移動
             const targetAge = AGE_ROWS[i - 1];
             COLUMNS.forEach((col) => {
               const moving = currentRow[col.key] || [];
@@ -803,7 +731,6 @@
         showToast(nextYear ? `「${nextYear}」に更新し、全選手を +1歳 移動しました` : '全選手を +1歳 移動しました');
       }
 
-      // 選択中のテキストの装飾（赤枠白字・青字・黒字）を変更
       function applyStyleToSelection(styleType) {
         const selection = window.getSelection();
         if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
@@ -839,12 +766,9 @@
           state.cells[age][colKey] = parsed;
           cellEl.innerHTML = renderPlayersHTML(parsed);
           saveState(false);
-        } catch (e) {
-          console.error('Style apply failed:', e);
-        }
+        } catch (e) {}
       }
 
-      // タップ装飾切替モードのON/OFF切り替え
       function toggleTapStyleMode() {
         isTapStyleMode = !isTapStyleMode;
         const wrapper = document.getElementById('tableScrollWrapper');
@@ -858,27 +782,25 @@
           wrapper.classList.add('tap-style-mode');
           btn.classList.remove('bg-amber-50', 'border-amber-400', 'text-amber-900');
           btn.classList.add('bg-amber-500', 'border-amber-600', 'text-white');
-          statusBadge.textContent = 'ON（タップで色変更）';
+          statusBadge.textContent = 'ON';
           statusBadge.classList.remove('bg-gray-600');
           statusBadge.classList.add('bg-gray-900');
-          guideText.innerHTML = '👆 <strong class="text-amber-800">タップ装飾モード中：</strong>選手名をタップするたびに「黒字 → 赤枠白字 → 青字」が切り替わります。文字を打つ時はOFFに戻してください。';
+          guideText.innerHTML = '👆 <strong class="text-amber-800">タップ装飾モード中：</strong>選手名をタップするたびに「黒字 → 赤枠白字 → 青字」が切り替わります。';
         } else {
           wrapper.classList.remove('tap-style-mode');
           btn.classList.add('bg-amber-50', 'border-amber-400', 'text-amber-900');
           btn.classList.remove('bg-amber-500', 'border-amber-600', 'text-white');
-          statusBadge.textContent = 'OFF（文字入力）';
+          statusBadge.textContent = 'OFF';
           statusBadge.classList.add('bg-gray-600');
           statusBadge.classList.remove('bg-gray-900');
-          guideText.innerHTML = '💡 マス目をタップして<strong class="text-gray-800">直接フリーテキスト入力</strong>（複数名は「・」区切り）。色分けは上の「👆 タップ装飾切替」をONにすると指で簡単に切り替えられます。';
+          guideText.innerHTML = '💡 枠をタップして<strong class="text-gray-800">直接文字入力</strong>（複数名は「・」区切り）。色分けは「👆 タップ装飾」をONにしてタップで切替。';
         }
 
-        // contentEditable属性を更新
         document.querySelectorAll('.editable-cell').forEach((cell) => {
           cell.contentEditable = isTapStyleMode ? 'false' : 'true';
         });
       }
 
-      // カスタム確認ダイアログ
       function openConfirmModal(title, message, onConfirm) {
         const modal = document.getElementById('confirmModal');
         document.getElementById('modalTitle').textContent = title;
@@ -903,17 +825,14 @@
         };
       }
 
-      // イベント初期化
       function init() {
         renderTable();
 
-        // URLハッシュから読み込んだ場合は保存した上でURLからハッシュを外す
         if (window.location.hash && window.location.hash.startsWith('#data=')) {
           saveState(false);
           showToast('共有リンクのデータを読み込みました');
         }
 
-        // iPadのSafariで「戻る」ボタンを押した際、入力中のセルも強制確定・保存する
         const flushActiveCellAndSave = () => {
           const active = document.activeElement;
           if (active && active.classList && active.classList.contains('editable-cell')) {
@@ -930,7 +849,6 @@
         window.addEventListener('pagehide', flushActiveCellAndSave);
         window.addEventListener('beforeunload', flushActiveCellAndSave);
 
-        // ブラウザの「戻る・進む」キャッシュ（bfcache）から復元された際も最新データを再描画
         window.addEventListener('pageshow', (e) => {
           if (e.persisted) {
             state = loadInitialState();
@@ -938,13 +856,9 @@
           }
         });
 
-        // 共有URLコピーボタン
         document.getElementById('shareUrlBtn').addEventListener('click', copyShareUrl);
-
-        // タップ装飾切替モードボタン
         document.getElementById('tapModeBtn').addEventListener('click', toggleTapStyleMode);
 
-        // 年度入力窓の変更イベント
         const yearInput = document.getElementById('yearInput');
         yearInput.addEventListener('input', (e) => {
           state.year = e.target.value;
@@ -952,17 +866,14 @@
           saveState(false);
         });
 
-        // タイトル編集イベント
         const titleEl = document.getElementById('sheetTitle');
         titleEl.addEventListener('input', () => {
           state.title = titleEl.textContent.trim();
           saveState(false);
         });
 
-        // 翌年度へ更新（+1歳）ボタン
         document.getElementById('advanceYearBtn').addEventListener('click', advanceOneYear);
 
-        // 1つ戻すボタン
         document.getElementById('undoBtn').addEventListener('click', () => {
           if (historyStack.length === 0) return;
           const prev = historyStack.pop();
@@ -973,7 +884,6 @@
           showToast('1つ前の状態に戻しました');
         });
 
-        // 文字装飾ボタン（mousedownで選択解除を防ぐ）
         document.querySelectorAll('.style-btn').forEach((btn) => {
           btn.addEventListener('mousedown', (e) => {
             e.preventDefault();
@@ -981,7 +891,6 @@
           });
         });
 
-        // JSONエクスポート（保存）
         document.getElementById('exportBtn').addEventListener('click', () => {
           try {
             const jsonStr = JSON.stringify(state, null, 2);
@@ -995,12 +904,10 @@
             URL.revokeObjectURL(url);
             showToast('JSONファイルをダウンロードしました');
           } catch (e) {
-            console.error(e);
             showToast('ファイルの書き出しに失敗しました');
           }
         });
 
-        // JSONインポート（読込）
         const importInput = document.getElementById('importFileInput');
         document.getElementById('importBtn').addEventListener('click', () => {
           importInput.value = '';
@@ -1022,14 +929,12 @@
               renderTable();
               showToast('JSONデータを読み込みました');
             } catch (err) {
-              console.error(err);
               showToast('無効なJSONファイルです');
             }
           };
           reader.readAsText(file);
         });
 
-        // 白紙リセットボタン
         document.getElementById('resetBtn').addEventListener('click', () => {
           openConfirmModal(
             '白紙状態にリセット',
