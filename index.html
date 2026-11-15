@@ -225,15 +225,11 @@
 
       <!-- iPadタッチ対応：タップ装飾切替モード & データ管理 -->
       <div class="flex flex-wrap items-center gap-2">
-        <!-- URL共有ボタン（GitHub Pages用：現在の入力内容をリンク化してコピー） -->
-        <button
-          id="shareUrlBtn"
-          type="button"
-          class="min-h-[42px] bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-xs sm:text-sm px-3.5 py-2 rounded-lg shadow-sm flex items-center gap-1.5 transition cursor-pointer"
-          title="現在の入力内容を含んだ共有用URLをコピーします。LINE等で送ると他の端末でも同じ内容が開きます"
-        >
-          <span>🔗 共有URLコピー</span>
-        </button>
+        <!-- クラウド同期ステータスバッジ -->
+        <div id="syncStatusBadge" class="min-h-[42px] bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold text-xs px-3 py-2 rounded-lg flex items-center gap-1.5" title="すべての端末間でデータが自動同期されます">
+          <span id="syncDot" class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
+          <span id="syncText">接続準備中...</span>
+        </div>
 
         <!-- タップ装飾切替モードトグル（iPad最適化の要） -->
         <button
@@ -374,10 +370,12 @@
     class="fixed bottom-5 right-5 bg-gray-900 text-white text-xs sm:text-sm font-bold px-4 py-2.5 rounded-lg shadow-lg opacity-0 pointer-events-none transition-opacity duration-200 z-50"
   ></div>
 
-  <script>
-    (function () {
-      const STORAGE_KEY = 'baseball_balance_sheet_gh_v1';
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+    (async function () {
       // 年齢行の定義（上から順：40~ 〜 ~19）
       const AGE_ROWS = [
         '40~', '39', '38', '37', '36', '35', '34', '33', '32', '31', '30',
@@ -411,114 +409,6 @@
           title: 'ポジション、年齢別／12球団バランスシート',
           cells: emptyCells
         };
-      }
-
-      // UTF-8対応 Base64 エンコード／デコード（共有URL生成用）
-      function encodeDataToHash(obj) {
-        try {
-          const json = JSON.stringify(obj);
-          const bytes = new TextEncoder().encode(json);
-          let binString = '';
-          bytes.forEach((b) => { binString += String.fromCharCode(b); });
-          return btoa(binString).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-        } catch (e) {
-          return '';
-        }
-      }
-
-      function decodeDataFromHash(hashStr) {
-        try {
-          let b64 = hashStr.replace(/-/g, '+').replace(/_/g, '/');
-          while (b64.length % 4) b64 += '=';
-          const binString = atob(b64);
-          const bytes = new Uint8Array(binString.length);
-          for (let i = 0; i < binString.length; i++) {
-            bytes[i] = binString.charCodeAt(i);
-          }
-          const json = new TextDecoder().decode(bytes);
-          return JSON.parse(json);
-        } catch (e) {
-          return null;
-        }
-      }
-
-      // URLハッシュまたはブラウザ保存領域からデータ復元
-      function loadInitialState() {
-        try {
-          const hash = window.location.hash;
-          if (hash && hash.startsWith('#data=')) {
-            const decoded = decodeDataFromHash(hash.slice(6));
-            if (decoded && decoded.cells) {
-              return decoded;
-            }
-          }
-        } catch (e) {
-          console.warn('URLからの読み込みをスキップしました:', e);
-        }
-
-        try {
-          const saved = window['local' + 'Storage'].getItem(STORAGE_KEY);
-          if (saved) {
-            const parsed = JSON.parse(saved);
-            if (parsed && parsed.cells) {
-              return parsed;
-            }
-          }
-        } catch (e) {
-          console.warn('ブラウザ保存領域からの読み込みをスキップしました:', e);
-        }
-
-        return createEmptyInitialData();
-      }
-
-      let state = loadInitialState();
-      let historyStack = [];
-      let toastTimer = null;
-      let isTapStyleMode = false;
-
-      // ブラウザ内への自動保存
-      function saveState(showNotify = false) {
-        updateSummary();
-        try {
-          window['local' + 'Storage'].setItem(STORAGE_KEY, JSON.stringify(state));
-          if (showNotify) {
-            showToast('保存しました');
-          }
-        } catch (e) {
-          console.error('Save failed:', e);
-        }
-      }
-
-      // 共有用URLを生成してクリップボードにコピー
-      function copyShareUrl() {
-        const encoded = encodeDataToHash(state);
-        if (!encoded) {
-          showToast('共有URLの生成に失敗しました');
-          return;
-        }
-        const baseUrl = window.location.href.split('#')[0];
-        const shareUrl = `${baseUrl}#data=${encoded}`;
-
-        // 現在のアドレスバーも最新状態に更新
-        try {
-          window.history.replaceState(null, '', `#data=${encoded}`);
-        } catch (e) {}
-
-        // iFrame・Safari・Chromeすべてで動作するコピー処理
-        const tempInput = document.createElement('textarea');
-        tempInput.value = shareUrl;
-        tempInput.style.position = 'fixed';
-        tempInput.style.opacity = '0';
-        document.body.appendChild(tempInput);
-        tempInput.select();
-        tempInput.setSelectionRange(0, 99999);
-        try {
-          document.execCommand('copy');
-          showToast('共有URLをコピーしました！LINEやメールで送れます');
-        } catch (err) {
-          showToast('URLのコピーに失敗しました');
-        }
-        document.body.removeChild(tempInput);
       }
 
       let state = createEmptyInitialData();
@@ -1023,17 +913,9 @@
       }
 
       // イベント初期化
-      function init() {
+      async function init() {
         renderTable();
-
-        // URLハッシュから読み込んだ場合は通知を表示
-        if (window.location.hash && window.location.hash.startsWith('#data=')) {
-          saveState(false);
-          showToast('共有リンクのデータを読み込みました');
-        }
-
-        // 共有URLコピーボタン
-        document.getElementById('shareUrlBtn').addEventListener('click', copyShareUrl);
+        await initCloudSync();
 
         // タップ装飾切替モードボタン
         document.getElementById('tapModeBtn').addEventListener('click', toggleTapStyleMode);
