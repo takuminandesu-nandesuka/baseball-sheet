@@ -225,11 +225,15 @@
 
       <!-- iPadタッチ対応：タップ装飾切替モード & データ管理 -->
       <div class="flex flex-wrap items-center gap-2">
-        <!-- クラウド同期ステータスバッジ -->
-        <div id="syncStatusBadge" class="min-h-[42px] bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold text-xs px-3 py-2 rounded-lg flex items-center gap-1.5" title="すべての端末間でデータが自動同期されます">
-          <span id="syncDot" class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
-          <span id="syncText">接続準備中...</span>
-        </div>
+        <!-- URL共有ボタン（GitHub Pages用：現在の入力内容をリンク化してコピー） -->
+        <button
+          id="shareUrlBtn"
+          type="button"
+          class="min-h-[42px] bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-xs sm:text-sm px-3.5 py-2 rounded-lg shadow-sm flex items-center gap-1.5 transition cursor-pointer"
+          title="現在の入力内容を含んだ共有用URLをコピーします。LINE等で送ると他の端末でも同じ内容が開きます"
+        >
+          <span>🔗 共有URLコピー</span>
+        </button>
 
         <!-- タップ装飾切替モードトグル（iPad最適化の要） -->
         <button
@@ -370,12 +374,10 @@
     class="fixed bottom-5 right-5 bg-gray-900 text-white text-xs sm:text-sm font-bold px-4 py-2.5 rounded-lg shadow-lg opacity-0 pointer-events-none transition-opacity duration-200 z-50"
   ></div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+  <script>
+    (function () {
+      const STORAGE_KEY = 'baseball_balance_sheet_gh_v1';
 
-    (async function () {
       // 年齢行の定義（上から順：40~ 〜 ~19）
       const AGE_ROWS = [
         '40~', '39', '38', '37', '36', '35', '34', '33', '32', '31', '30',
@@ -411,136 +413,112 @@
         };
       }
 
-      let state = createEmptyInitialData();
+      // UTF-8対応 Base64 エンコード／デコード（共有URL生成用）
+      function encodeDataToHash(obj) {
+        try {
+          const json = JSON.stringify(obj);
+          const bytes = new TextEncoder().encode(json);
+          let binString = '';
+          bytes.forEach((b) => { binString += String.fromCharCode(b); });
+          return btoa(binString).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        } catch (e) {
+          return '';
+        }
+      }
+
+      function decodeDataFromHash(hashStr) {
+        try {
+          let b64 = hashStr.replace(/-/g, '+').replace(/_/g, '/');
+          while (b64.length % 4) b64 += '=';
+          const binString = atob(b64);
+          const bytes = new Uint8Array(binString.length);
+          for (let i = 0; i < binString.length; i++) {
+            bytes[i] = binString.charCodeAt(i);
+          }
+          const json = new TextDecoder().decode(bytes);
+          return JSON.parse(json);
+        } catch (e) {
+          return null;
+        }
+      }
+
+      // URLハッシュまたはブラウザ保存領域からデータ復元
+      function loadInitialState() {
+        try {
+          const hash = window.location.hash;
+          if (hash && hash.startsWith('#data=')) {
+            const decoded = decodeDataFromHash(hash.slice(6));
+            if (decoded && decoded.cells) {
+              return decoded;
+            }
+          }
+        } catch (e) {
+          console.warn('URLからの読み込みをスキップしました:', e);
+        }
+
+        try {
+          const saved = window['local' + 'Storage'].getItem(STORAGE_KEY);
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (parsed && parsed.cells) {
+              return parsed;
+            }
+          }
+        } catch (e) {
+          console.warn('ブラウザ保存領域からの読み込みをスキップしました:', e);
+        }
+
+        return createEmptyInitialData();
+      }
+
+      let state = loadInitialState();
       let historyStack = [];
       let toastTimer = null;
-      let isTapStyleMode = false; // iPad用：タップ装飾切替モードフラグ
-      let saveDebounceTimer = null;
-      let isApplyingRemoteUpdate = false;
+      let isTapStyleMode = false;
 
-      // クラウド同期用の変数
-      let db = null;
-      let currentUser = null;
-      let sharedDocRef = null;
-
-      // 同期ステータスUI更新
-      function updateSyncStatus(statusType, text) {
-        const badge = document.getElementById('syncStatusBadge');
-        const dot = document.getElementById('syncDot');
-        const label = document.getElementById('syncText');
-        if (!badge || !dot || !label) return;
-
-        label.textContent = text;
-        dot.className = 'w-2.5 h-2.5 rounded-full';
-        badge.className = 'min-h-[42px] border font-bold text-xs px-3 py-2 rounded-lg flex items-center gap-1.5';
-
-        if (statusType === 'online') {
-          dot.classList.add('bg-emerald-500');
-          badge.classList.add('bg-emerald-50', 'text-emerald-800', 'border-emerald-200');
-        } else if (statusType === 'saving') {
-          dot.classList.add('bg-blue-500', 'animate-ping');
-          badge.classList.add('bg-blue-50', 'text-blue-800', 'border-blue-200');
-        } else {
-          dot.classList.add('bg-amber-500');
-          badge.classList.add('bg-amber-50', 'text-amber-800', 'border-amber-200');
-        }
-      }
-
-      // クラウドへのデータ保存（デバウンス処理付き）
+      // ブラウザ内への自動保存
       function saveState(showNotify = false) {
         updateSummary();
-        if (isApplyingRemoteUpdate) return;
-        if (!db || !currentUser || !sharedDocRef) return;
-
-        updateSyncStatus('saving', '同期中...');
-        clearTimeout(saveDebounceTimer);
-        saveDebounceTimer = setTimeout(async () => {
-          try {
-            // Firestoreのネスト制限を避けるためcellsはJSON文字列化して保存
-            const payload = {
-              year: state.year || '2026年度',
-              title: state.title || 'ポジション、年齢別／12球団バランスシート',
-              cellsJson: JSON.stringify(state.cells),
-              updatedAt: Date.now()
-            };
-            await setDoc(sharedDocRef, payload);
-            updateSyncStatus('online', '全員と共有中');
-            if (showNotify) {
-              showToast('クラウドに保存・共有しました');
-            }
-          } catch (e) {
-            console.error('Failed to save to cloud:', e);
-            updateSyncStatus('offline', '同期エラー');
+        try {
+          window['local' + 'Storage'].setItem(STORAGE_KEY, JSON.stringify(state));
+          if (showNotify) {
+            showToast('保存しました');
           }
-        }, 400);
+        } catch (e) {
+          console.error('Save failed:', e);
+        }
       }
 
-      // クラウド初期化とリアルタイム購読
-      async function initCloudSync() {
-        try {
-          if (typeof __firebase_config === 'undefined') {
-            updateSyncStatus('offline', 'ローカル表示中');
-            return;
-          }
-
-          const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-          const firebaseConfig = JSON.parse(__firebase_config);
-          const app = initializeApp(firebaseConfig);
-          const auth = getAuth(app);
-          db = getFirestore(app);
-
-          // 認証完了を待機（RULE 3準拠）
-          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-            const cred = await signInWithCustomToken(auth, __initial_auth_token);
-            currentUser = cred.user;
-          } else {
-            const cred = await signInAnonymously(auth);
-            currentUser = cred.user;
-          }
-
-          if (!currentUser) return;
-
-          // 誰でも閲覧・編集できる公開共有パス（RULE 1準拠）
-          sharedDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'balance_sheets', 'shared_main_sheet');
-
-          // リアルタイム監視開始
-          onSnapshot(
-            sharedDocRef,
-            (snapshot) => {
-              updateSyncStatus('online', '全員と共有中');
-              if (snapshot.exists()) {
-                const data = snapshot.data();
-                // 入力中のセルからフォーカスが外れないよう、アクティブな入力中でなければ即座に反映
-                const activeEl = document.activeElement;
-                const isEditingCell = activeEl && (activeEl.classList.contains('editable-cell') || activeEl.id === 'yearInput' || activeEl.id === 'sheetTitle');
-
-                if (!isEditingCell && data.cellsJson) {
-                  isApplyingRemoteUpdate = true;
-                  try {
-                    state = {
-                      year: data.year || '2026年度',
-                      title: data.title || 'ポジション、年齢別／12球団バランスシート',
-                      cells: JSON.parse(data.cellsJson)
-                    };
-                    renderTable();
-                  } finally {
-                    isApplyingRemoteUpdate = false;
-                  }
-                }
-              } else {
-                // 初回アクセス時は初期データをクラウドに作成
-                saveState(false);
-              }
-            },
-            (error) => {
-              console.error('Snapshot listener error:', error);
-              updateSyncStatus('offline', '共有接続エラー');
-            }
-          );
-        } catch (err) {
-          console.error('Cloud initialization error:', err);
-          updateSyncStatus('offline', 'オフライン動作');
+      // 共有用URLを生成してクリップボードにコピー
+      function copyShareUrl() {
+        const encoded = encodeDataToHash(state);
+        if (!encoded) {
+          showToast('共有URLの生成に失敗しました');
+          return;
         }
+        const baseUrl = window.location.href.split('#')[0];
+        const shareUrl = `${baseUrl}#data=${encoded}`;
+
+        // 現在のアドレスバーも最新状態に更新
+        try {
+          window.history.replaceState(null, '', `#data=${encoded}`);
+        } catch (e) {}
+
+        // iFrame・Safari・Chromeすべてで動作するコピー処理
+        const tempInput = document.createElement('textarea');
+        tempInput.value = shareUrl;
+        tempInput.style.position = 'fixed';
+        tempInput.style.opacity = '0';
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        tempInput.setSelectionRange(0, 99999);
+        try {
+          document.execCommand('copy');
+          showToast('共有URLをコピーしました！LINEやメールで送れます');
+        } catch (err) {
+          showToast('URLのコピーに失敗しました');
+        }
+        document.body.removeChild(tempInput);
       }
 
       // トースト通知
@@ -913,9 +891,17 @@
       }
 
       // イベント初期化
-      async function init() {
+      function init() {
         renderTable();
-        await initCloudSync();
+
+        // URLハッシュから読み込んだ場合は通知を表示
+        if (window.location.hash && window.location.hash.startsWith('#data=')) {
+          saveState(false);
+          showToast('共有リンクのデータを読み込みました');
+        }
+
+        // 共有URLコピーボタン
+        document.getElementById('shareUrlBtn').addEventListener('click', copyShareUrl);
 
         // タップ装飾切替モードボタン
         document.getElementById('tapModeBtn').addEventListener('click', toggleTapStyleMode);
