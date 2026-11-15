@@ -481,6 +481,10 @@
         updateSummary();
         try {
           window['local' + 'Storage'].setItem(STORAGE_KEY, JSON.stringify(state));
+          // 共有URLハッシュが残っているとリロードや戻る操作時に古いデータで上書きされるため消去する
+          if (window.location.hash && window.location.hash.startsWith('#data=')) {
+            window.history.replaceState(null, '', window.location.pathname + window.location.search);
+          }
           if (showNotify) {
             showToast('保存しました');
           }
@@ -679,6 +683,15 @@
 
             // 入力中もリアルタイムでstate更新
             td.addEventListener('input', () => {
+              if (isTapStyleMode) return;
+              const parsed = parseCellDOMToPlayers(td);
+              if (!state.cells[age]) state.cells[age] = {};
+              state.cells[age][col.key] = parsed;
+              saveState(false);
+            });
+
+            // iPad日本語入力（予測変換確定時）の即座保存
+            td.addEventListener('compositionend', () => {
               if (isTapStyleMode) return;
               const parsed = parseCellDOMToPlayers(td);
               if (!state.cells[age]) state.cells[age] = {};
@@ -894,11 +907,36 @@
       function init() {
         renderTable();
 
-        // URLハッシュから読み込んだ場合は通知を表示
+        // URLハッシュから読み込んだ場合は保存した上でURLからハッシュを外す
         if (window.location.hash && window.location.hash.startsWith('#data=')) {
           saveState(false);
           showToast('共有リンクのデータを読み込みました');
         }
+
+        // iPadのSafariで「戻る」ボタンを押した際、入力中のセルも強制確定・保存する
+        const flushActiveCellAndSave = () => {
+          const active = document.activeElement;
+          if (active && active.classList && active.classList.contains('editable-cell')) {
+            const age = active.dataset.age;
+            const colKey = active.dataset.col;
+            if (age && colKey) {
+              const parsed = parseCellDOMToPlayers(active);
+              if (!state.cells[age]) state.cells[age] = {};
+              state.cells[age][colKey] = parsed;
+            }
+          }
+          saveState(false);
+        };
+        window.addEventListener('pagehide', flushActiveCellAndSave);
+        window.addEventListener('beforeunload', flushActiveCellAndSave);
+
+        // ブラウザの「戻る・進む」キャッシュ（bfcache）から復元された際も最新データを再描画
+        window.addEventListener('pageshow', (e) => {
+          if (e.persisted) {
+            state = loadInitialState();
+            renderTable();
+          }
+        });
 
         // 共有URLコピーボタン
         document.getElementById('shareUrlBtn').addEventListener('click', copyShareUrl);
