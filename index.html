@@ -9,15 +9,26 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&display=swap" rel="stylesheet">
   <style>
-    body {
+    html, body {
+      height: 100dvh;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
       font-family: 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
       background-color: #f4f5f7;
       color: #1a1a1a;
       -webkit-tap-highlight-color: transparent;
     }
 
+    body {
+      display: flex;
+      flex-direction: column;
+    }
+
     /* スクロールなし・1画面画角フィット設計 */
     .table-scroll-wrapper {
+      flex: 1 1 auto;
+      min-height: 0;
       overflow: hidden;
       border: 1.5px solid #374151;
       border-radius: 6px;
@@ -25,10 +36,11 @@
       width: 100%;
     }
 
-    /* バランスシート特有の太線・配色再現（横幅100%固定・横スクロール廃止） */
+    /* バランスシート特有の太線・配色再現（縦横100%固定・スクロール完全廃止） */
     .bs-table {
       border-collapse: collapse;
       width: 100%;
+      height: 100%;
       table-layout: fixed;
       background: #ffffff;
     }
@@ -37,10 +49,10 @@
     .bs-table td {
       border-bottom: 1px solid #d1d5db;
       border-right: 1.5px solid #4b5563;
-      padding: 1px 2px;
+      padding: 0 2px;
       text-align: center;
       vertical-align: middle;
-      line-height: 1.15;
+      line-height: 1.05;
       word-break: break-all;
       overflow-wrap: anywhere;
     }
@@ -57,13 +69,13 @@
       font-weight: 900;
       border-right: 3px solid #1f2937 !important;
       border-bottom: 2px solid #1f2937 !important;
-      font-size: clamp(10px, 1.1vw, 13px);
+      font-size: clamp(9px, 1vw, 12px);
     }
 
     .sticky-age-cell {
       border-right: 3px solid #1f2937 !important;
-      font-size: clamp(10px, 1.15vw, 13px);
-      padding: 1px 0 !important;
+      font-size: clamp(9px, 1.05vw, 12px);
+      padding: 0 !important;
     }
 
     /* ヘッダー配色 */
@@ -72,17 +84,17 @@
       color: #ffe600;
       font-weight: 900;
       letter-spacing: 0.05em;
-      height: 26px;
+      height: 22px;
       border-bottom: 1.5px solid #1f2937 !important;
-      font-size: clamp(11px, 1.3vw, 15px);
+      font-size: clamp(10px, 1.2vw, 14px);
     }
     .header-pos-sub {
       background-color: #ffffff;
       color: #008000;
       font-weight: 900;
-      height: 22px;
+      height: 18px;
       border-bottom: 2px solid #1f2937 !important;
-      font-size: clamp(10px, 1.15vw, 13px);
+      font-size: clamp(9px, 1.05vw, 12px);
     }
 
     /* 年齢別行の背景色 */
@@ -93,12 +105,12 @@
     .row-20s-even, .row-20s-even .sticky-age-cell { background-color: #ffffff; }
     .row-19under, .row-19under .sticky-age-cell { background-color: #d5e2d8; }
 
-    /* 編集可能セルのスタイル（1画面に全22行収まる高さ・画面幅連動フォント） */
+    /* 編集可能セルのスタイル（画面高さに自動均等配分） */
     .editable-cell {
-      height: 24px;
+      height: auto;
       cursor: text;
       font-weight: 800;
-      font-size: clamp(10px, 1.15vw, 13.5px);
+      font-size: clamp(9px, 1.05vw, 12.5px);
       transition: box-shadow 0.15s ease, background-color 0.15s ease;
       outline: none;
     }
@@ -117,7 +129,7 @@
       -webkit-user-select: none;
     }
     .tap-style-mode .player-token {
-      padding: 0 3px;
+      padding: 0 2px;
       border-radius: 3px;
       border: 1px dashed rgba(0, 68, 153, 0.5);
       display: inline-block;
@@ -127,10 +139,10 @@
     .player-red {
       background-color: #e60012;
       color: #ffffff;
-      padding: 0 3px;
+      padding: 0 2px;
       border-radius: 2px;
       display: inline-block;
-      line-height: 1.15;
+      line-height: 1.05;
     }
     .player-blue {
       color: #005bac;
@@ -141,6 +153,10 @@
 
     /* 印刷時の最適化 */
     @media print {
+      html, body {
+        height: auto;
+        overflow: visible;
+      }
       .no-print {
         display: none !important;
       }
@@ -158,22 +174,22 @@
     }
   </style>
 </head>
-<body class="p-1.5 sm:p-2.5">
+<body class="p-1.5 sm:p-2">
 
   <!-- 操作ツールバー（上部コンパクト配置） -->
-  <div class="no-print max-w-[1400px] mx-auto mb-2 bg-white rounded-xl shadow-sm border border-gray-200 px-3 py-2">
-    <div class="flex flex-wrap items-center justify-between gap-2">
+  <div class="no-print flex-none w-full max-w-[1400px] mx-auto mb-1.5 bg-white rounded-xl shadow-sm border border-gray-200 px-2.5 py-1.5">
+    <div class="flex flex-wrap items-center justify-between gap-1.5">
       
       <!-- 年度入力窓＆年度更新コントロール -->
       <div class="flex flex-wrap items-center gap-1.5">
-        <div class="flex items-center bg-blue-50 border-2 border-[#004499] rounded-lg px-2 py-0.5 min-h-[36px] shadow-inner">
+        <div class="flex items-center bg-blue-50 border-2 border-[#004499] rounded-lg px-2 py-0.5 min-h-[32px] shadow-inner">
           <label for="yearInput" class="text-xs font-bold text-[#004499] mr-1 whitespace-nowrap">年度：</label>
           <input
             id="yearInput"
             type="text"
             value="2026年度"
             aria-label="対象年度"
-            class="w-24 sm:w-28 text-sm font-black text-gray-900 bg-white border border-blue-300 rounded px-1.5 py-0.5 text-center focus:outline-none focus:ring-2 focus:ring-[#004499]"
+            class="w-24 sm:w-28 text-xs sm:text-sm font-black text-gray-900 bg-white border border-blue-300 rounded px-1.5 py-0.5 text-center focus:outline-none focus:ring-2 focus:ring-[#004499]"
             placeholder="例: 2026年度"
           />
         </div>
@@ -181,7 +197,7 @@
         <button
           id="advanceYearBtn"
           type="button"
-          class="min-h-[36px] bg-[#004499] hover:bg-blue-800 active:scale-[0.98] text-white font-bold text-xs px-3 py-1.5 rounded-lg shadow transition flex items-center gap-1 cursor-pointer"
+          class="min-h-[32px] bg-[#004499] hover:bg-blue-800 active:scale-[0.98] text-white font-bold text-xs px-2.5 py-1 rounded-lg shadow transition flex items-center gap-1 cursor-pointer"
           title="年度を1つ進め、全選手の年齢を1歳上へ移動します"
         >
           <span>翌年度へ更新（+1歳）</span>
@@ -191,7 +207,7 @@
           id="undoBtn"
           type="button"
           disabled
-          class="min-h-[36px] bg-gray-100 hover:bg-gray-200 disabled:opacity-40 disabled:pointer-events-none text-gray-700 font-bold text-xs px-2.5 py-1.5 rounded-lg border border-gray-300 transition cursor-pointer"
+          class="min-h-[32px] bg-gray-100 hover:bg-gray-200 disabled:opacity-40 disabled:pointer-events-none text-gray-700 font-bold text-xs px-2 py-1 rounded-lg border border-gray-300 transition cursor-pointer"
           title="直前の操作を取り消します"
         >
           ↩ 戻す
@@ -203,7 +219,7 @@
         <button
           id="shareUrlBtn"
           type="button"
-          class="min-h-[36px] bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-xs px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-1 transition cursor-pointer"
+          class="min-h-[32px] bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-xs px-2.5 py-1 rounded-lg shadow-sm flex items-center gap-1 transition cursor-pointer"
           title="現在の入力内容を含んだ共有用URLをコピーします"
         >
           <span>🔗 共有URL</span>
@@ -213,23 +229,23 @@
           id="tapModeBtn"
           type="button"
           aria-pressed="false"
-          class="min-h-[36px] bg-amber-50 hover:bg-amber-100 text-amber-900 border-2 border-amber-400 font-black text-xs px-2.5 py-1.5 rounded-lg transition flex items-center gap-1 cursor-pointer"
+          class="min-h-[32px] bg-amber-50 hover:bg-amber-100 text-amber-900 border-2 border-amber-400 font-black text-xs px-2 py-1 rounded-lg transition flex items-center gap-1 cursor-pointer"
           title="ONにすると選手名をタップするだけで『黒字→赤枠白字→青字』を切り替えられます"
         >
           <span>👆 タップ装飾:</span>
           <span id="tapModeStatus" class="bg-gray-600 text-white text-[10px] px-1.5 py-0.5 rounded">OFF</span>
         </button>
 
-        <div class="hidden lg:flex items-center gap-1 bg-gray-100 p-0.5 rounded-lg border border-gray-200 min-h-[36px]">
-          <button type="button" data-style="normal" class="style-btn px-2 py-1 text-xs font-bold bg-white text-gray-900 rounded border border-gray-300 hover:bg-gray-50 cursor-pointer">黒字</button>
-          <button type="button" data-style="red" class="style-btn px-2 py-1 text-xs font-bold bg-[#e60012] text-white rounded hover:opacity-90 cursor-pointer">赤枠</button>
-          <button type="button" data-style="blue" class="style-btn px-2 py-1 text-xs font-bold bg-white text-[#005bac] rounded border border-gray-300 hover:bg-blue-50 cursor-pointer">青字</button>
+        <div class="hidden lg:flex items-center gap-1 bg-gray-100 p-0.5 rounded-lg border border-gray-200 min-h-[32px]">
+          <button type="button" data-style="normal" class="style-btn px-2 py-0.5 text-xs font-bold bg-white text-gray-900 rounded border border-gray-300 hover:bg-gray-50 cursor-pointer">黒字</button>
+          <button type="button" data-style="red" class="style-btn px-2 py-0.5 text-xs font-bold bg-[#e60012] text-white rounded hover:opacity-90 cursor-pointer">赤枠</button>
+          <button type="button" data-style="blue" class="style-btn px-2 py-0.5 text-xs font-bold bg-white text-[#005bac] rounded border border-gray-300 hover:bg-blue-50 cursor-pointer">青字</button>
         </div>
 
         <button
           id="exportBtn"
           type="button"
-          class="min-h-[36px] bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 font-bold text-xs px-2.5 py-1.5 rounded-lg transition cursor-pointer"
+          class="min-h-[32px] bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 font-bold text-xs px-2 py-1 rounded-lg transition cursor-pointer"
         >
           保存
         </button>
@@ -237,7 +253,7 @@
         <button
           id="importBtn"
           type="button"
-          class="min-h-[36px] bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 font-bold text-xs px-2.5 py-1.5 rounded-lg transition cursor-pointer"
+          class="min-h-[32px] bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 font-bold text-xs px-2 py-1 rounded-lg transition cursor-pointer"
         >
           読込
         </button>
@@ -246,7 +262,7 @@
         <button
           id="resetBtn"
           type="button"
-          class="min-h-[36px] bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-bold text-xs px-2.5 py-1.5 rounded-lg transition cursor-pointer"
+          class="min-h-[32px] bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-bold text-xs px-2 py-1 rounded-lg transition cursor-pointer"
         >
           白紙リセット
         </button>
@@ -254,35 +270,35 @@
     </div>
 
     <!-- ガイド表示・集計サマリー -->
-    <div class="mt-1.5 pt-1.5 border-t border-gray-100 flex flex-wrap items-center justify-between gap-2 text-[11px] text-gray-600">
-      <div id="modeGuideText" class="flex-1 min-w-[220px]">
-        💡 枠をタップして<strong class="text-gray-800">直接文字入力</strong>（複数名は「・」区切り）。色分けは「👆 タップ装飾」をONにしてタップで切替。
+    <div class="mt-1 pt-1 border-t border-gray-100 flex flex-wrap items-center justify-between gap-2 text-[10px] sm:text-[11px] text-gray-600">
+      <div id="modeGuideText" class="flex-1 min-w-[200px] truncate">
+        💡 枠をタップして<strong class="text-gray-800">直接文字入力</strong>（複数名は「・」区切り）。色分けは「👆 タップ装飾」ONで切替。
       </div>
-      <div id="playerCountSummary" class="font-bold text-gray-800 bg-gray-100 px-2 py-0.5 rounded">
+      <div id="playerCountSummary" class="font-bold text-gray-800 bg-gray-100 px-2 py-0.5 rounded whitespace-nowrap">
         合計 0名（投手:0 / 捕手:0 / 内野:0 / 外野:0）
       </div>
     </div>
   </div>
 
-  <!-- バランスシート本体（1画面フィット） -->
-  <div class="sheet-container max-w-[1400px] mx-auto bg-white p-2 sm:p-3 rounded-xl shadow-md border border-gray-200">
+  <!-- バランスシート本体（残り高さ100%フィット） -->
+  <div class="sheet-container flex-1 min-h-0 flex flex-col w-full max-w-[1400px] mx-auto bg-white p-1.5 sm:p-2.5 rounded-xl shadow-md border border-gray-200">
     <!-- タイトル行 -->
-    <div class="flex flex-wrap items-center justify-center gap-2 mb-1.5">
-      <span id="sheetYearBadge" class="bg-[#004499] text-white font-black text-xs sm:text-sm px-2.5 py-0.5 rounded shadow-sm">
+    <div class="flex-none flex flex-wrap items-center justify-center gap-2 mb-1">
+      <span id="sheetYearBadge" class="bg-[#004499] text-white font-black text-xs px-2 py-0.5 rounded shadow-sm">
         2026年度
       </span>
       <h1
         id="sheetTitle"
         contenteditable="true"
         spellcheck="false"
-        class="text-base sm:text-xl font-black text-gray-800 tracking-wide text-center px-2 rounded hover:bg-gray-100 focus:bg-blue-50 focus:outline-none"
+        class="text-sm sm:text-lg font-black text-gray-800 tracking-wide text-center px-2 rounded hover:bg-gray-100 focus:bg-blue-50 focus:outline-none"
         title="クリックしてタイトルも自由に編集できます"
       >
         ポジション、年齢別／12球団バランスシート
       </h1>
     </div>
 
-    <!-- テーブルラッパー（横スクロールなし・全列100%フィット） -->
+    <!-- テーブルラッパー（縦横スクロール完全廃止・1画面100%フィット） -->
     <div id="tableScrollWrapper" class="table-scroll-wrapper">
       <table id="sheetTable" class="bs-table">
         <colgroup>
